@@ -10,7 +10,7 @@ from typing import Optional
 
 from rapidfuzz import fuzz, process
 
-_ALIASES_PATH = Path(__file__).parents[5] / "normalize" / "color_aliases.json"
+_ALIASES_PATH = Path(__file__).parents[3] / "normalize" / "color_aliases.json"
 
 CANONICAL_VALUES = [
     "white", "silver", "grey", "grey-metallic", "black",

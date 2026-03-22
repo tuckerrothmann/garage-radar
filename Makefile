@@ -1,4 +1,4 @@
-.PHONY: help db-up db-down install migrate seed api frontend test lint clean
+.PHONY: help db-up db-down install migrate seed api frontend test lint clean ingest-bat ingest-cb ingest-dry
 
 # Default target
 help:
@@ -16,6 +16,10 @@ help:
 	@echo "    make api         Start FastAPI (uvicorn --reload)"
 	@echo "    make frontend    Start Astro/Next.js dev server"
 	@echo "    make scrape-bat  Run BaT scraper once (--limit 20)"
+	@echo "    make scrape-cb   Run C&B scraper once (--limit 20)"
+	@echo "    make ingest-bat  Full BaT ingest (LIMIT=N to cap)"
+	@echo "    make ingest-cb   Full C&B ingest (LIMIT=N to cap)"
+	@echo "    make ingest-dry  Dry-run ingest (SOURCE=bat LIMIT=5)"
 	@echo ""
 	@echo "  Quality:"
 	@echo "    make test        Run pytest"
@@ -64,10 +68,19 @@ frontend:
 	cd frontend && npm run dev
 
 scrape-bat:
-	cd backend && .venv/bin/python -m garage_radar.sources.bat.crawler --limit 20
+	cd backend && .venv/bin/python ../scripts/ingest.py --source bat --limit 20
 
 scrape-cb:
-	cd backend && .venv/bin/python -m garage_radar.sources.carsandbids.crawler --limit 20
+	cd backend && .venv/bin/python ../scripts/ingest.py --source carsandbids --limit 20
+
+ingest-bat:
+	cd backend && .venv/bin/python ../scripts/ingest.py --source bat --limit $(or $(LIMIT),50)
+
+ingest-cb:
+	cd backend && .venv/bin/python ../scripts/ingest.py --source carsandbids --limit $(or $(LIMIT),50)
+
+ingest-dry:
+	cd backend && .venv/bin/python ../scripts/ingest.py --source $(or $(SOURCE),bat) --limit $(or $(LIMIT),5) --dry-run
 
 # ── Quality ───────────────────────────────────────────────────
 
