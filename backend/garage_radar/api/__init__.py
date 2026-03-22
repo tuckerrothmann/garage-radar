@@ -15,13 +15,39 @@ Endpoints:
     POST  /alerts/dismiss-all   bulk dismiss
 
     GET  /health                service health check
+    GET  /scheduler/status      scheduler job status
+
+The APScheduler instance is started/stopped via the FastAPI lifespan so it
+shares the same event loop as the ASGI server. Set the DISABLE_SCHEDULER=1
+environment variable to skip scheduler startup (useful in test/staging).
 """
+import logging
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from garage_radar.api.routers.alerts import router as alerts_router
 from garage_radar.api.routers.comps import router as comps_router
 from garage_radar.api.routers.listings import router as listings_router
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Start scheduler on startup; stop it on shutdown."""
+    scheduler = None
+    if not os.getenv("DISABLE_SCHEDULER"):
+        from garage_radar.scheduler import start_scheduler, stop_scheduler
+        scheduler = start_scheduler()
+
+    yield
+
+    if scheduler is not None:
+        from garage_radar.scheduler import stop_scheduler
+        stop_scheduler()
 
 
 def create_app() -> FastAPI:
@@ -31,6 +57,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=_lifespan,
     )
 
     app.add_middleware(
@@ -47,6 +74,22 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["meta"])
     async def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/scheduler/status", tags=["meta"])
+    async def scheduler_status() -> dict:
+        """Return the next scheduled run times for each job."""
+        if os.getenv("DISABLE_SCHEDULER"):
+            return {"scheduler": "disabled", "jobs": []}
+        from garage_radar.scheduler import get_scheduler
+        sched = get_scheduler()
+        jobs = [
+            {
+                "id": job.id,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+            }
+            for job in sched.get_jobs()
+        ]
+        return {"scheduler": "running" if sched.running else "stopped", "jobs": jobs}
 
     return app
 
