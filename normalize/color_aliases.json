@@ -1,0 +1,229 @@
+{
+  "_comment": "Color normalization aliases for air-cooled Porsche 911 listings. Maps raw color strings (lowercase, trimmed) to canonical color values.",
+  "_canonical_values": [
+    "white", "silver", "grey", "grey-metallic", "black",
+    "red", "blue", "blue-metallic", "green", "green-metallic",
+    "yellow", "orange", "brown", "beige", "gold-metallic",
+    "purple", "turquoise", "burgundy", "bronze-metallic", "other"
+  ],
+  "aliases": {
+    "white": [
+      "grand prix white",
+      "alpine white",
+      "ivory white",
+      "white",
+      "weiss",
+      "chalk white",
+      "carrara white",
+      "polar silver",
+      "polar white",
+      "diamond silver white",
+      "linen",
+      "cream white",
+      "1k3 white"
+    ],
+    "silver": [
+      "silver",
+      "silver metallic",
+      "arctic silver",
+      "arctic silver metallic",
+      "seal grey",
+      "platinum",
+      "cashmere",
+      "silver rose",
+      "cool silver",
+      "bright silver",
+      "techno silver"
+    ],
+    "grey": [
+      "slate grey",
+      "dark grey",
+      "graphite grey",
+      "agate grey",
+      "basalt grey",
+      "stone grey",
+      "grau",
+      "dove grey",
+      "anthracite grey",
+      "umber grey",
+      "quartz grey",
+      "meteor grey"
+    ],
+    "grey-metallic": [
+      "slate grey metallic",
+      "dark grey metallic",
+      "meteor grey metallic",
+      "agate grey metallic",
+      "graphite grey metallic",
+      "granite grey metallic",
+      "Biscay blue",
+      "hurricane grey metallic",
+      "dark graphite metallic"
+    ],
+    "black": [
+      "black",
+      "midnight blue",
+      "dark black",
+      "schwarz",
+      "black metallic",
+      "jet black"
+    ],
+    "red": [
+      "guards red",
+      "red",
+      "rot",
+      "indian red",
+      "coral red",
+      "light red",
+      "signal red",
+      "wine red",
+      "carmine red",
+      "ruby red",
+      "bright red",
+      "tomato red",
+      "blood orange red"
+    ],
+    "blue": [
+      "maritime blue",
+      "cobalt blue",
+      "horizon blue",
+      "slate blue",
+      "night blue",
+      "nachtblau",
+      "dark blue",
+      "blue",
+      "iris blue",
+      "biscay blue",
+      "polo blue"
+    ],
+    "blue-metallic": [
+      "cobalt blue metallic",
+      "biscay blue metallic",
+      "lapis blue metallic",
+      "ocean blue metallic",
+      "dark blue metallic",
+      "minerva blue metallic",
+      "azurblau metallic",
+      "riviera blue metallic",
+      "horizon blue metallic"
+    ],
+    "green": [
+      "irish green",
+      "forest green",
+      "olive green",
+      "moss green",
+      "dark olive",
+      "meadow green",
+      "green",
+      "light green",
+      "petrol green"
+    ],
+    "green-metallic": [
+      "forest green metallic",
+      "emerald green metallic",
+      "sport green metallic",
+      "kelly green metallic",
+      "moss green metallic",
+      "jade green metallic",
+      "cassis red metallic"
+    ],
+    "yellow": [
+      "yellow",
+      "speed yellow",
+      "light yellow",
+      "primrose yellow",
+      "cream yellow",
+      "gelb",
+      "banana yellow",
+      "racing yellow",
+      "signal yellow",
+      "pastel yellow"
+    ],
+    "orange": [
+      "orange",
+      "light orange",
+      "bahama yellow",
+      "amber",
+      "blood orange",
+      "tangerine",
+      "saffron yellow",
+      "copper brown"
+    ],
+    "brown": [
+      "brown",
+      "tobacco",
+      "cognac",
+      "chestnut brown",
+      "oak",
+      "light brown",
+      "havanna",
+      "sepia brown"
+    ],
+    "beige": [
+      "beige",
+      "sand beige",
+      "cream",
+      "linen",
+      "chamois",
+      "pastel ivory",
+      "light ivory",
+      "satin beige"
+    ],
+    "gold-metallic": [
+      "gold metallic",
+      "champagne metallic",
+      "golden yellow metallic",
+      "aurum",
+      "harvest gold metallic"
+    ],
+    "purple": [
+      "purple",
+      "viola",
+      "amethyst",
+      "purple metallic",
+      "dark violet",
+      "orchid"
+    ],
+    "turquoise": [
+      "turquoise",
+      "aqua",
+      "teal",
+      "caribbean blue",
+      "aquamarine",
+      "miami blue",
+      "sky blue"
+    ],
+    "burgundy": [
+      "burgundy",
+      "bordeaux red",
+      "dark red",
+      "wine red",
+      "dark burgundy",
+      "cassis",
+      "maroon"
+    ],
+    "bronze-metallic": [
+      "bronze metallic",
+      "brown metallic",
+      "copper metallic",
+      "rubystone red metallic",
+      "mahogany metallic",
+      "dark bronze"
+    ],
+    "other": [
+      "custom",
+      "special",
+      "special order",
+      "unknown",
+      "other",
+      "repaint",
+      "non-standard"
+    ]
+  },
+  "_notes": [
+    "Match is case-insensitive, after stripping leading/trailing whitespace.",
+    "If no alias matches, use fuzzy string similarity (threshold 0.7) before falling back to 'other'.",
+    "Always store the raw color string in exterior_color_raw before normalization.",
+    "Porsche paint codes (e.g., L80K for Grand Prix White) should map to canonical too — add paint code lookup in v2."
+  ]
+}

@@ -1,0 +1,55 @@
+# ── Secrets / config ───────────────────────────────────────────
+.env
+*.env.local
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Node / frontend ────────────────────────────────────────────
+node_modules/
+.next/
+.astro/
+dist/
+out/
+
+# ── Data ───────────────────────────────────────────────────────
+# Raw HTML snapshots — large, not useful in git
+data/snapshots/
+# Keep fixtures (they're test data, committed)
+!data/fixtures/
+
+# ── Database ───────────────────────────────────────────────────
+*.sql.bak
+
+# ── OS ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── IDE ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Docker ─────────────────────────────────────────────────────
+# Keep docker-compose.yml but ignore override files with local secrets
+docker-compose.override.yml

@@ -1,0 +1,52 @@
+{
+  "_comment": "Sample normalized listing fixture — 1991 964 Carrera 2 from Cars & Bids. Mid-quality listing: description shorter, no paint meter, mods noted.",
+  "source": "carsandbids",
+  "source_url": "https://carsandbids.com/auctions/1991-porsche-911-carrera-EXAMPLE",
+  "scrape_ts": "2025-03-15T10:05:00Z",
+  "listing_status": "active",
+
+  "year": 1991,
+  "generation": "G5",
+  "body_style": "coupe",
+  "trim": "Carrera 2",
+  "drivetrain": "rwd",
+  "engine_variant": "3.6",
+  "transmission": "manual",
+  "exterior_color_raw": "Guards Red",
+  "exterior_color_canonical": "red",
+  "interior_color_raw": "Black leather",
+  "mileage": 94000,
+  "vin": null,
+  "title_status": "clean",
+
+  "asking_price": 61000,
+  "currency": "USD",
+  "price_history": [
+    {"price": 65000, "ts": "2025-02-28T09:00:00Z"},
+    {"price": 61000, "ts": "2025-03-10T14:30:00Z"}
+  ],
+  "final_price": null,
+
+  "matching_numbers": null,
+  "original_paint": false,
+  "service_history": false,
+  "modification_flags": ["aftermarket_wheels", "sport_exhaust"],
+  "normalization_confidence": 0.74,
+
+  "_normalization_notes": "Matching numbers not mentioned in listing — set to null (unknown), not false. Original paint not stated; repaint mentioned in photos description. Low confidence due to missing VIN and NLP ambiguity.",
+
+  "description_raw": "1991 Porsche 911 Carrera 2 coupe in Guards Red with black leather interior. 3.6-liter flat-six paired with a 5-speed G50 manual. Currently showing 94,000 miles. The car was repainted at some point and has aftermarket BBS wheels and an aftermarket sport exhaust. No service records on hand. No reserve.",
+  "listing_date": "2025-03-12",
+  "seller_type": "private",
+  "seller_name": null,
+  "location": "Denver, Colorado",
+  "bidder_count": null,
+  "snapshot_path": "data/snapshots/carsandbids/2025-03-15/1991-porsche-911-carrera-EXAMPLE.html",
+  "possible_duplicate_id": null,
+
+  "_derived": {
+    "cluster_key": "G5:coupe:manual",
+    "price_drop_pct": -6.15,
+    "price_drop_note": "Calculated from price_history: (61000 - 65000) / 65000 = -6.15%"
+  }
+}

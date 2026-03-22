@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "garage-radar"
+version = "0.1.0"
+description = "Market intelligence and comps tracker for air-cooled Porsche 911s"
+requires-python = ">=3.11"
+dependencies = [
+    # HTTP / scraping
+    "httpx[http2]>=0.26",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "playwright>=1.41",          # Headless browser fallback for bot-detected sources
+
+    # Database
+    "sqlalchemy[asyncio]>=2.0",
+    "alembic>=1.13",
+    "asyncpg>=0.29",             # Async Postgres driver
+    "psycopg2-binary>=2.9",      # Sync driver for Alembic migrations
+
+    # API
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+
+    # Config
+    "pydantic-settings>=2.2",
+
+    # Scheduling
+    "apscheduler>=3.10",
+
+    # Email
+    "sendgrid>=6.11",
+
+    # Utilities
+    "python-dateutil>=2.9",
+    "rapidfuzz>=3.6",            # Fuzzy string matching for color normalization
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-httpx>=0.28",
+    "ruff>=0.3",
+    "mypy>=1.8",
+    "factory-boy>=3.3",
+    "ipython>=8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]  # Line length enforced by formatter
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["garage_radar*"]
