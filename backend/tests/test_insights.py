@@ -48,13 +48,16 @@ class TestToFloat:
 
 class TestClusterKey:
     def test_basic_format(self):
-        assert cluster_key_for("G6", "coupe", "manual") == "G6:coupe:manual"
+        assert cluster_key_for("Porsche", "911", "coupe", "manual") == "Porsche:911:coupe:manual"
 
     def test_cabriolet_auto(self):
-        assert cluster_key_for("G5", "cabriolet", "auto") == "G5:cabriolet:auto"
+        assert cluster_key_for("Porsche", "911", "cabriolet", "auto") == "Porsche:911:cabriolet:auto"
 
     def test_six_speed(self):
-        assert cluster_key_for("G6", "coupe", "manual-6sp") == "G6:coupe:manual-6sp"
+        assert cluster_key_for("Porsche", "911", "coupe", "manual-6sp") == "Porsche:911:coupe:manual-6sp"
+
+    def test_different_make(self):
+        assert cluster_key_for("Chevrolet", "Corvette", "convertible", "manual") == "Chevrolet:Corvette:convertible:manual"
 
 
 # ── _is_new_listing ───────────────────────────────────────────────────────────

@@ -1,20 +1,11 @@
 """
 eBay Motors crawler — uses the eBay Finding API (JSON).
 
-Searches for completed Porsche 911 sales (air-cooled years 1965–1998) in
-eBay Motors > Cars & Trucks (categoryId=6001).
-
-Unlike BaT/C&B, eBay returns rich structured data directly in the API
-response so we don't need a separate individual-page fetch step — each
-search result already contains title, price, end time, condition, mileage
-(in item specifics), and VIN. The parser receives these JSON items directly
-rather than HTML pages.
+Searches for completed vehicle sales in eBay Motors > Cars & Trucks
+(categoryId=6001) for each vehicle in the watchlist.
 
 API: eBay Finding API v1.0.3
-Docs: https://developer.ebay.com/devzone/finding/CallRef/findCompletedItems.html
-
-Rate: 5 requests/second is the default quota for Finding API sandbox/production.
-We use 0.5 req/s (1 per 2s) to stay conservative and avoid quota issues.
+Rate: 0.5 req/s (1 per 2s) — conservative vs. the default 5 req/s quota.
 """
 import json
 import logging
@@ -29,32 +20,48 @@ from garage_radar.sources.base import BaseCrawler, RawPage
 logger = logging.getLogger(__name__)
 
 _FINDING_API_URL = "https://svcs.ebay.com/services/search/FindingService/v1"
-_CATEGORY_ID = "6001"          # eBay Motors > Cars & Trucks
-_KEYWORDS = "porsche 911 air cooled"
-_YEAR_RANGE = "1965..1998"     # Item specifics filter
-_PAGE_SIZE = 100               # Max items per page (API limit)
-_RATE = 0.5                    # req/s — conservative
+_CATEGORY_ID = "6001"   # eBay Motors > Cars & Trucks
+_PAGE_SIZE = 100        # Max items per page (API limit)
+_RATE = 0.5             # req/s — conservative
 
 
 class EbayCrawler(BaseCrawler):
     source_name = "ebay"
 
-    def __init__(self, max_pages: int = 5, include_active: bool = False):
+    def __init__(
+        self,
+        max_pages: int = 5,
+        include_active: bool = False,
+        watched_vehicles=None,
+    ):
         """
-        max_pages: number of paginated API calls (100 items each → up to 500 comps)
+        max_pages: number of paginated API calls per vehicle (100 items each)
         include_active: also fetch active (not yet ended) listings
+        watched_vehicles: list of WatchedVehicle from watchlist
         """
         self.max_pages = max_pages
         self.include_active = include_active
+        self._watched_vehicles = watched_vehicles
+
+    @property
+    def watched_vehicles(self):
+        if self._watched_vehicles is None:
+            from garage_radar.watchlist import get_watched_vehicles
+            self._watched_vehicles = get_watched_vehicles()
+        return self._watched_vehicles
 
     async def get_listing_urls(self, limit: Optional[int] = None) -> list[str]:
         """
         For eBay we return item IDs formatted as pseudo-URLs.
-        The real data is fetched in fetch_page() via the API.
+        The real data is fetched in fetch_page() via the Shopping API.
         """
         settings = get_settings()
         if not settings.ebay_app_id:
             logger.warning("EbayCrawler: ebay_app_id not configured — skipping.")
+            return []
+
+        if not self.watched_vehicles:
+            logger.warning("EbayCrawler: no watched vehicles in watchlist — nothing to crawl.")
             return []
 
         item_ids: list[str] = []
@@ -63,22 +70,33 @@ class EbayCrawler(BaseCrawler):
             operations.append("findItemsAdvanced")
 
         async with httpx.AsyncClient(timeout=20) as client:
-            for operation in operations:
-                ids = await self._search(client, operation, settings.ebay_app_id, limit)
-                item_ids.extend(ids)
+            for vehicle in self.watched_vehicles:
+                keywords = vehicle.search_query("ebay")
+                for operation in operations:
+                    ids = await self._search(
+                        client, operation, settings.ebay_app_id, keywords,
+                        vehicle.year_min, vehicle.year_max, limit,
+                    )
+                    item_ids.extend(ids)
 
         if limit:
             item_ids = item_ids[:limit]
 
-        logger.info("EbayCrawler: found %d item IDs.", len(item_ids))
-        # Return as canonical URLs so the scheduler can treat them uniformly
-        return [f"https://www.ebay.com/itm/{item_id}" for item_id in item_ids]
+        # Deduplicate
+        seen: set[str] = set()
+        unique_ids = [i for i in item_ids if not (i in seen or seen.add(i))]
+
+        logger.info("EbayCrawler: found %d item IDs.", len(unique_ids))
+        return [f"https://www.ebay.com/itm/{item_id}" for item_id in unique_ids]
 
     async def _search(
         self,
         client: httpx.AsyncClient,
         operation: str,
         app_id: str,
+        keywords: str,
+        year_min: int,
+        year_max: int,
         limit: Optional[int],
     ) -> list[str]:
         item_ids: list[str] = []
@@ -94,15 +112,14 @@ class EbayCrawler(BaseCrawler):
                 "SECURITY-APPNAME": app_id,
                 "RESPONSE-DATA-FORMAT": "JSON",
                 "categoryId": _CATEGORY_ID,
-                "keywords": _KEYWORDS,
+                "keywords": keywords,
                 "paginationInput.pageNumber": str(page),
                 "paginationInput.entriesPerPage": str(_PAGE_SIZE),
                 "sortOrder": "EndTimeSoonest",
-                # Filter to air-cooled years via item specifics
                 "itemFilter(0).name": "MinYear",
-                "itemFilter(0).value": "1965",
+                "itemFilter(0).value": str(year_min),
                 "itemFilter(1).name": "MaxYear",
-                "itemFilter(1).value": "1998",
+                "itemFilter(1).value": str(year_max),
             }
 
             try:
@@ -110,12 +127,12 @@ class EbayCrawler(BaseCrawler):
                 resp.raise_for_status()
                 data = resp.json()
             except Exception:
-                logger.exception("EbayCrawler: API call failed (page %d).", page)
+                logger.exception("EbayCrawler: API call failed (page %d, %r).", page, keywords)
                 break
 
             items = _extract_items(data, operation)
             if not items:
-                logger.info("EbayCrawler: no items on page %d — stopping.", page)
+                logger.info("EbayCrawler: no items on page %d for %r — stopping.", page, keywords)
                 break
 
             for item in items:
@@ -123,9 +140,10 @@ class EbayCrawler(BaseCrawler):
                 if item_id:
                     item_ids.append(item_id)
 
-            logger.info("EbayCrawler: page %d → %d items total.", page, len(item_ids))
+            logger.info(
+                "EbayCrawler: page %d (%r) → %d items total.", page, keywords, len(item_ids)
+            )
 
-            # Respect total pages
             total_pages = int(
                 data.get(f"{_op_key(operation)}Response", [{}])[0]
                     .get("paginationOutput", [{}])[0]
@@ -137,11 +155,7 @@ class EbayCrawler(BaseCrawler):
         return item_ids
 
     async def fetch_page(self, url: str) -> RawPage:
-        """
-        For eBay, fetch the individual listing data via the Shopping API
-        GetSingleItem call. Falls back to a lightweight HTML fetch if the
-        app_id isn't a production key.
-        """
+        """Fetch individual listing data via the eBay Shopping API GetSingleItem."""
         settings = get_settings()
         item_id = url.rstrip("/").split("/")[-1]
 
@@ -191,7 +205,6 @@ def _extract_items(data: dict, operation: str) -> list[dict]:
 
 
 def _op_key(operation: str) -> str:
-    """Map operation name to the JSON response root key."""
     return {
         "findCompletedItems": "findCompletedItems",
         "findItemsAdvanced": "findItemsAdvanced",

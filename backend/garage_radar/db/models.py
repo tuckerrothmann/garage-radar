@@ -2,7 +2,7 @@
 Garage Radar — SQLAlchemy 2.0 ORM models.
 These are the authoritative schema definition; Alembic migrations are generated from them.
 
-Niche: Air-cooled Porsche 911, 1965–1998.
+General-purpose vintage car market intelligence platform.
 """
 from __future__ import annotations
 
@@ -52,31 +52,30 @@ class ListingStatusEnum(str, enum.Enum):
     relist = "relist"
 
 
-class GenerationEnum(str, enum.Enum):
-    G1 = "G1"   # 1965–1973 classic / long-hood
-    G2 = "G2"   # 1974–1977 impact bumper
-    G3 = "G3"   # 1978–1983 SC era
-    G4 = "G4"   # 1984–1989 Carrera 3.2
-    G5 = "G5"   # 1989–1994 964
-    G6 = "G6"   # 1994–1998 993
-
-
 class BodyStyleEnum(str, enum.Enum):
     coupe = "coupe"
     targa = "targa"
     cabriolet = "cabriolet"
     speedster = "speedster"
+    convertible = "convertible"
+    roadster = "roadster"
+    fastback = "fastback"
+    hardtop = "hardtop"
+    sedan = "sedan"
+    wagon = "wagon"
+    pickup = "pickup"
 
 
 class TransmissionEnum(str, enum.Enum):
     manual = "manual"
-    manual_6sp = "manual-6sp"   # 993 RS only
-    auto = "auto"               # Tiptronic
+    manual_6sp = "manual-6sp"
+    auto = "auto"
 
 
 class DrivetrainEnum(str, enum.Enum):
     rwd = "rwd"
-    awd = "awd"     # 964 C4 / 993 C4 only
+    awd = "awd"
+    fwd = "fwd"
 
 
 class TitleStatusEnum(str, enum.Enum):
@@ -163,13 +162,12 @@ class Listing(Base):
     __tablename__ = "listings"
     __table_args__ = (
         UniqueConstraint("source", "source_url", name="uq_listings_source_url"),
-        CheckConstraint("year BETWEEN 1965 AND 1998", name="ck_listings_year_range"),
         CheckConstraint("mileage >= 0", name="ck_listings_mileage_positive"),
         CheckConstraint(
             "normalization_confidence BETWEEN 0 AND 1",
             name="ck_listings_confidence_range",
         ),
-        Index("idx_listings_generation", "generation"),
+        Index("idx_listings_make_model", "make", "model"),
         Index("idx_listings_year", "year"),
         Index("idx_listings_status", "listing_status"),
         Index("idx_listings_source", "source"),
@@ -191,11 +189,11 @@ class Listing(Base):
         default=ListingStatusEnum.active,
     )
 
-    # Vehicle
+    # Vehicle identity
+    make: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    model: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    generation: Mapped[Optional[GenerationEnum]] = mapped_column(
-        Enum(GenerationEnum, name="generation_enum"), nullable=True
-    )
+    generation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_style: Mapped[Optional[BodyStyleEnum]] = mapped_column(
         Enum(BodyStyleEnum, name="body_style_enum"), nullable=True
     )
@@ -281,7 +279,7 @@ class Comp(Base):
     __table_args__ = (
         UniqueConstraint("source", "source_url", name="uq_comps_source_url"),
         Index("idx_comps_sale_date", "sale_date"),
-        Index("idx_comps_generation_body_trans", "generation", "body_style", "transmission"),
+        Index("idx_comps_make_model_body_trans", "make", "model", "body_style", "transmission"),
         Index("idx_comps_price_type", "price_type"),
     )
 
@@ -292,10 +290,10 @@ class Comp(Base):
         Enum(SourceEnum, name="source_enum"), nullable=False
     )
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    make: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    model: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    generation: Mapped[Optional[GenerationEnum]] = mapped_column(
-        Enum(GenerationEnum, name="generation_enum"), nullable=True
-    )
+    generation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_style: Mapped[Optional[BodyStyleEnum]] = mapped_column(
         Enum(BodyStyleEnum, name="body_style_enum"), nullable=True
     )
@@ -346,10 +344,9 @@ class CompCluster(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    cluster_key: Mapped[str] = mapped_column(Text, nullable=False)  # 'G6:coupe:manual'
-    generation: Mapped[GenerationEnum] = mapped_column(
-        Enum(GenerationEnum, name="generation_enum"), nullable=False
-    )
+    cluster_key: Mapped[str] = mapped_column(Text, nullable=False)  # 'Porsche:911:coupe:manual'
+    make: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
     body_style: Mapped[BodyStyleEnum] = mapped_column(
         Enum(BodyStyleEnum, name="body_style_enum"), nullable=False
     )
@@ -411,13 +408,13 @@ class Alert(Base):
 
 
 class CanonicalModel(Base):
-    """Reference table: valid air-cooled 911 spec universe. Pre-seeded; rarely changes."""
+    """Reference table: known make/model spec configurations. Pre-seeded; rarely changes."""
     __tablename__ = "canonical_models"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    generation: Mapped[GenerationEnum] = mapped_column(
-        Enum(GenerationEnum, name="generation_enum"), nullable=False
-    )
+    make: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
+    generation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     years_start: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     years_end: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     common_name: Mapped[str] = mapped_column(Text, nullable=False)

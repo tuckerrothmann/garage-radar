@@ -67,12 +67,6 @@ _JOBS = [
         {},
     ),
     (
-        "crawl_pcarmarket",
-        lambda: crawl_job("pcarmarket", max_pages=10, include_sold=True),
-        {"hour": 4, "minute": 45},
-        {},
-    ),
-    (
         "dedup",
         lambda: dedup_job(),
         {"hour": 5, "minute": 30},
@@ -201,7 +195,7 @@ def main() -> None:
 def _run_now_and_exit(job_name: str) -> None:
     """Run a single job immediately (for manual triggers / debugging)."""
     async def _run():
-        if job_name in ("bat", "carsandbids", "ebay", "pcarmarket"):
+        if job_name in ("bat", "carsandbids", "ebay"):
             result = await crawl_job(job_name, max_pages=5, include_sold=True)
         elif job_name == "dedup":
             result = await dedup_job()
@@ -210,7 +204,7 @@ def _run_now_and_exit(job_name: str) -> None:
         else:
             raise ValueError(
                 f"Unknown job: {job_name!r}. "
-                "Valid: bat, carsandbids, ebay, pcarmarket, dedup, insights"
+                "Valid: bat, carsandbids, ebay, dedup, insights"
             )
         logger.info("Job %r complete: %s", job_name, result)
 

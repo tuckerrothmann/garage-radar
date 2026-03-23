@@ -24,6 +24,8 @@ export interface Listing {
   source: string;
   source_url: string;
   listing_status: string;
+  make: string | null;
+  model: string | null;
   year: number;
   generation: string | null;
   body_style: string | null;
@@ -95,7 +97,8 @@ export interface AlertPage {
 export interface CompCluster {
   id: number;
   cluster_key: string;
-  generation: string;
+  make: string;
+  model: string;
   body_style: string;
   transmission: string;
   window_days: number;
@@ -112,6 +115,8 @@ export interface CompCluster {
 // ── Listings ─────────────────────────────────────────────────────────────────
 
 export interface ListingFilters {
+  make?: string;
+  model?: string;
   generation?: string;
   body_style?: string;
   transmission?: string;
@@ -169,7 +174,8 @@ export async function dismissAllAlerts(): Promise<{ dismissed: number }> {
 // ── Comp clusters ────────────────────────────────────────────────────────────
 
 export async function getCompClusters(filters: {
-  generation?: string;
+  make?: string;
+  model?: string;
   body_style?: string;
   transmission?: string;
 } = {}): Promise<CompCluster[]> {

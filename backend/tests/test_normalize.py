@@ -20,40 +20,58 @@ from garage_radar.normalize.color import normalize_color
 
 class TestYearToGeneration:
     def test_g1_classic(self):
-        assert year_to_generation(1969) == "G1"
+        assert year_to_generation(1969, make="Porsche", model="911") == "G1"
 
     def test_g2_impact_bumper(self):
-        assert year_to_generation(1976) == "G2"
+        assert year_to_generation(1976, make="Porsche", model="911") == "G2"
 
     def test_g3_sc(self):
-        assert year_to_generation(1981) == "G3"
+        assert year_to_generation(1981, make="Porsche", model="911") == "G3"
 
     def test_g4_carrera_32(self):
-        assert year_to_generation(1987) == "G4"
+        assert year_to_generation(1987, make="Porsche", model="911") == "G4"
 
     def test_g5_964(self):
-        assert year_to_generation(1991) == "G5"
+        assert year_to_generation(1991, make="Porsche", model="911") == "G5"
 
     def test_g6_993(self):
-        assert year_to_generation(1997) == "G6"
+        assert year_to_generation(1997, make="Porsche", model="911") == "G6"
 
     def test_out_of_range_high(self):
-        assert year_to_generation(1999) is None
+        assert year_to_generation(1999, make="Porsche", model="911") is None
 
     def test_out_of_range_low(self):
-        assert year_to_generation(1964) is None
+        assert year_to_generation(1964, make="Porsche", model="911") is None
+
+    def test_unknown_make_returns_none(self):
+        assert year_to_generation(1969, make="DeSoto", model="Firedome") is None
+
+    def test_no_make_returns_none(self):
+        assert year_to_generation(1969) is None
 
     def test_ambiguous_1989_g5_hint(self):
         desc = "1989 Porsche 964 Carrera 2, just serviced"
-        assert year_to_generation(1989, desc) == "G5"
+        assert year_to_generation(1989, desc, make="Porsche", model="911") == "G5"
 
     def test_ambiguous_1989_g4_hint(self):
         desc = "1989 Porsche 911 Carrera 3.2, Speedster body"
-        assert year_to_generation(1989, desc) == "G4"
+        assert year_to_generation(1989, desc, make="Porsche", model="911") == "G4"
 
     def test_ambiguous_1994_g6_hint(self):
         desc = "1994 993 Carrera, last air-cooled"
-        assert year_to_generation(1994, desc) == "G6"
+        assert year_to_generation(1994, desc, make="Porsche", model="911") == "G6"
+
+    def test_corvette_c1(self):
+        assert year_to_generation(1957, make="Chevrolet", model="Corvette") == "C1"
+
+    def test_corvette_c2(self):
+        assert year_to_generation(1965, make="Chevrolet", model="Corvette") == "C2"
+
+    def test_mustang_gen1(self):
+        assert year_to_generation(1968, make="Ford", model="Mustang") == "Gen1"
+
+    def test_mustang_gen3(self):
+        assert year_to_generation(1985, make="Ford", model="Mustang") == "Gen3"
 
 
 # ── Color normalization tests ─────────────────────────────────────────────────
@@ -167,8 +185,8 @@ class TestDetectDrivetrain:
     def test_c4s_in_title(self):
         assert _detect_drivetrain("", "1997 Porsche 993 C4S Coupe") == "awd"
 
-    def test_c4_standalone(self):
-        assert _detect_drivetrain("", "1996 993 C4 Cabriolet") == "awd"
+    def test_c4_in_carrera_4(self):
+        assert _detect_drivetrain("", "1996 Porsche 993 Carrera 4 Cabriolet") == "awd"
 
     def test_targa_4(self):
         assert _detect_drivetrain("", "1992 964 Targa 4") == "awd"

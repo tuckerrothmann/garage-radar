@@ -1,11 +1,7 @@
 """
 Cars & Bids (carsandbids.com) crawler.
 
-Fetches listing URLs from C&B search results for Porsche 911.
-
-Target URLs:
-  Active:    https://carsandbids.com/search/?q=porsche+911
-  Completed: https://carsandbids.com/search/?q=porsche+911&sold=1
+Fetches listing URLs from C&B search results for each vehicle in the watchlist.
 
 Individual listing: https://carsandbids.com/auctions/{slug}/
 
@@ -14,7 +10,7 @@ Rate: 1 req / 4s (0.25 req/s) with ±20% jitter.
 import logging
 import re
 from typing import Optional
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 
 from bs4 import BeautifulSoup
 
@@ -34,11 +30,28 @@ _LISTING_URL_RE = re.compile(r"https://carsandbids\.com/auctions/[a-z0-9-]+/?$")
 class CarsAndBidsCrawler(BaseCrawler):
     source_name = "carsandbids"
 
-    def __init__(self, include_sold: bool = True, max_pages: int = 10):
+    def __init__(
+        self,
+        include_sold: bool = True,
+        max_pages: int = 10,
+        watched_vehicles=None,
+    ):
         self.include_sold = include_sold
         self.max_pages = max_pages
+        self._watched_vehicles = watched_vehicles
+
+    @property
+    def watched_vehicles(self):
+        if self._watched_vehicles is None:
+            from garage_radar.watchlist import get_watched_vehicles
+            self._watched_vehicles = get_watched_vehicles()
+        return self._watched_vehicles
 
     async def get_listing_urls(self, limit: Optional[int] = None) -> list[str]:
+        if not self.watched_vehicles:
+            logger.warning("C&B: no watched vehicles in watchlist — nothing to crawl.")
+            return []
+
         urls: set[str] = set()
 
         async with HttpClient(
@@ -46,9 +59,11 @@ class CarsAndBidsCrawler(BaseCrawler):
             domain="carsandbids.com",
             rate=_RATE,
         ) as client:
-            await self._crawl_search(client, sold=False, urls=urls, limit=limit)
-            if self.include_sold:
-                await self._crawl_search(client, sold=True, urls=urls, limit=limit)
+            for vehicle in self.watched_vehicles:
+                query = vehicle.search_query("carsandbids")
+                await self._crawl_search(client, query, sold=False, urls=urls, limit=limit)
+                if self.include_sold:
+                    await self._crawl_search(client, query, sold=True, urls=urls, limit=limit)
 
         result = list(urls)
         if limit:
@@ -59,6 +74,7 @@ class CarsAndBidsCrawler(BaseCrawler):
     async def _crawl_search(
         self,
         client: HttpClient,
+        query: str,
         sold: bool,
         urls: set[str],
         limit: Optional[int],
@@ -68,10 +84,12 @@ class CarsAndBidsCrawler(BaseCrawler):
             if limit and len(urls) >= limit:
                 break
 
-            params = f"?q=porsche+911" + ("&sold=1" if sold else "")
+            params = {"q": query}
+            if sold:
+                params["sold"] = "1"
             if page_num > 1:
-                params += f"&page={page_num}"
-            url = _SEARCH_URL + params
+                params["page"] = str(page_num)
+            url = _SEARCH_URL + "?" + urlencode(params)
 
             raw = await client.get(url, referer=_BASE_URL)
             if raw.status_code == 0:
@@ -85,16 +103,19 @@ class CarsAndBidsCrawler(BaseCrawler):
 
             new_urls = self._extract_listing_urls(raw.content)
             if not new_urls:
-                logger.info("C&B: no listing URLs on page %d — stopping.", page_num)
+                logger.info(
+                    "C&B: no listing URLs on page %d for %r — stopping.", page_num, query
+                )
                 break
 
             before = len(urls)
             urls.update(new_urls)
             after = len(urls)
             logger.info(
-                "C&B page %d (%s): found %d URLs, %d new.",
+                "C&B page %d (%s, %r): found %d URLs, %d new.",
                 page_num,
                 "sold" if sold else "active",
+                query,
                 len(new_urls),
                 after - before,
             )
@@ -114,7 +135,6 @@ class CarsAndBidsCrawler(BaseCrawler):
             if _LISTING_URL_RE.match(href):
                 found.append(href)
 
-        # Deduplicate preserving order
         seen = set()
         result = []
         for u in found:

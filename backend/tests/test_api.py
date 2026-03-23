@@ -28,7 +28,6 @@ from garage_radar.db.models import (
     BodyStyleEnum,
     CompCluster,
     DrivetrainEnum,
-    GenerationEnum,
     Listing,
     ListingStatusEnum,
     SourceEnum,
@@ -46,8 +45,10 @@ def _listing(**kwargs) -> Listing:
         source=SourceEnum.bat,
         source_url="https://bringatrailer.com/listing/test/",
         listing_status=ListingStatusEnum.active,
+        make="Porsche",
+        model="911",
         year=1995,
-        generation=GenerationEnum.G6,
+        generation="G6",
         body_style=BodyStyleEnum.coupe,
         trim=None,
         drivetrain=DrivetrainEnum.rwd,
@@ -175,19 +176,16 @@ class TestListingsEndpoint:
         items = r.json()["items"]
         assert len(items) == 1
         assert items[0]["year"] == 1995
+        assert items[0]["make"] == "Porsche"
+        assert items[0]["model"] == "911"
         assert items[0]["generation"] == "G6"
         assert items[0]["source"] == "bat"
 
-    def test_invalid_generation_returns_400(self):
-        session = AsyncMock()
-        session.scalar = AsyncMock(return_value=0)
-        result = MagicMock()
-        result.scalars.return_value.all.return_value = []
-        session.execute = AsyncMock(return_value=result)
-        app.dependency_overrides[get_db] = _override_db(session)
-        client = TestClient(app)
-        r = client.get("/listings?generation=INVALID")
-        assert r.status_code == 400
+    def test_make_filter_accepted(self):
+        # make is now free text — any value is accepted, no 400
+        client = self._client([])
+        r = client.get("/listings?make=Porsche")
+        assert r.status_code == 200
 
     def test_invalid_status_returns_400(self):
         session = AsyncMock()
@@ -269,10 +267,11 @@ class TestCompsEndpoint:
         assert r.status_code == 200
         assert r.json()["items"] == []
 
-    def test_invalid_generation_400(self):
+    def test_make_filter_accepted(self):
+        # generation is now free text — any value is accepted with ilike
         client = self._client()
-        r = client.get("/comps?generation=Z9")
-        assert r.status_code == 400
+        r = client.get("/comps?make=Chevrolet&model=Corvette")
+        assert r.status_code == 200
 
     def test_invalid_source_400(self):
         client = self._client()

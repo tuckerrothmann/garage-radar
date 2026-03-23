@@ -1,0 +1,45 @@
+# Garage Radar — Watchlist Configuration
+#
+# Copy this file to config/watchlist.yaml and edit to your preferences.
+# The crawler will search for each entry on BaT, Cars & Bids, and eBay.
+#
+# Fields:
+#   make        (required) — vehicle manufacturer, e.g. "Porsche", "Ford"
+#   model       (required) — model name, e.g. "911", "Mustang"
+#   year_min    (required) — earliest year to include
+#   year_max    (required) — latest year to include
+#   search_override (optional) — per-source search term overrides
+#     bat       — search query string for bringatrailer.com
+#     carsandbids — search query string for carsandbids.com
+#     ebay      — keywords for eBay Finding API
+
+vehicles:
+  - make: Porsche
+    model: "911"
+    year_min: 1965
+    year_max: 1998
+
+  - make: Chevrolet
+    model: Corvette
+    year_min: 1953
+    year_max: 1972
+    search_override:
+      bat: "chevrolet corvette c1 c2 c3"
+      carsandbids: "corvette c1 c2 c3"
+      ebay: "chevrolet corvette 1953 1972"
+
+  - make: Ford
+    model: Mustang
+    year_min: 1964
+    year_max: 1973
+    search_override:
+      bat: "ford mustang fastback coupe convertible"
+      ebay: "ford mustang 1964 1973 classic"
+
+  - make: Mercedes-Benz
+    model: 280SL
+    year_min: 1963
+    year_max: 1971
+    search_override:
+      bat: "mercedes 280sl pagoda"
+      ebay: "mercedes benz 280sl 230sl 250sl pagoda"

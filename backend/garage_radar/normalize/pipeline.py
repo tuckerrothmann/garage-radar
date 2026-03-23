@@ -5,16 +5,19 @@ Takes a ParsedListing or ParsedComp (raw extracted fields from a source parser)
 and produces a fully normalized record ready for database insertion.
 
 Normalization steps:
-  1. Generation mapping (year → G1–G6, using description hints)
-  2. Body style canonicalization
-  3. Transmission canonicalization
-  4. Color canonicalization (raw text → canonical palette)
-  5. NLP flag extraction (matching numbers, original paint, service history, mods)
-  6. Confidence scoring
+  1. Make/model extraction (from parser fields or title text)
+  2. Generation mapping (year + make/model → generation code, optional)
+  3. Body style canonicalization
+  4. Transmission canonicalization
+  5. Drivetrain detection
+  6. Color canonicalization
+  7. NLP flag extraction (matching numbers, original paint, service history, mods)
+  8. Confidence scoring
 
 The pipeline never raises — it logs warnings and continues with None for failed fields.
 """
 import logging
+import re
 from dataclasses import asdict
 from typing import Optional
 
@@ -29,9 +32,31 @@ logger = logging.getLogger(__name__)
 
 # Fields that contribute to the confidence score
 _CONFIDENCE_FIELDS = [
-    "year", "generation", "body_style_raw", "transmission_raw",
+    "make", "model", "year", "body_style_raw", "transmission_raw",
     "exterior_color_raw", "mileage",
 ]
+
+# Pattern to extract year + make + model from listing titles
+# Matches patterns like: "1969 Porsche 911 T Coupe", "1967 Ford Mustang Fastback"
+_TITLE_RE = re.compile(
+    r"^\s*(?P<year>\d{4})\s+(?P<make>[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)?)\s+(?P<model>[A-Z0-9][A-Za-z0-9\-\.]+)",
+    re.UNICODE,
+)
+
+
+def _extract_make_model_from_title(title: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Attempt to parse make and model from a listing title of the form:
+      "{year} {Make} {Model} ..."
+
+    Returns (make, model) or (None, None) if not parseable.
+    """
+    if not title:
+        return None, None
+    m = _TITLE_RE.match(title)
+    if m:
+        return m.group("make").strip(), m.group("model").strip()
+    return None, None
 
 
 def normalize(parsed: ParsedListing) -> dict:
@@ -39,7 +64,6 @@ def normalize(parsed: ParsedListing) -> dict:
     Run the full normalization pipeline on a parsed listing.
 
     Returns a dict of normalized fields ready for ORM model instantiation.
-    Keys map directly to Listing / Comp model column names.
     """
     raw = asdict(parsed)
 
@@ -48,40 +72,46 @@ def normalize(parsed: ParsedListing) -> dict:
     title: str = raw.get("title_raw") or ""
     combined_text = f"{title} {description}"
 
-    # 1. Generation
-    generation: Optional[str] = None
-    if year:
-        generation = year_to_generation(year, combined_text)
-        if not generation:
-            logger.warning("normalize: could not map year %s to generation.", year)
+    # 1. Make / model
+    make: Optional[str] = raw.get("make_raw") or None
+    model: Optional[str] = raw.get("model_raw") or None
+    if not make or not model:
+        title_make, title_model = _extract_make_model_from_title(title)
+        make = make or title_make
+        model = model or title_model
 
-    # 2. Body style
+    # 2. Generation (optional; requires make + model)
+    generation: Optional[str] = None
+    if year and make and model:
+        generation = year_to_generation(year, combined_text, make=make, model=model)
+
+    # 3. Body style
     body_style_raw = raw.get("body_style_raw") or ""
-    # BaT parsers return canonical body style values directly; try title as fallback
     body_style = normalize_body_style(body_style_raw or combined_text)
 
-    # 3. Transmission
+    # 4. Transmission
     transmission_raw = raw.get("transmission_raw") or ""
     transmission = normalize_transmission(transmission_raw or combined_text)
 
-    # 4. Drivetrain
+    # 5. Drivetrain
     drivetrain_raw = raw.get("drivetrain_raw") or ""
     drivetrain = _detect_drivetrain(drivetrain_raw, combined_text)
 
-    # 5. Color
+    # 6. Color
     color_raw = raw.get("exterior_color_raw")
     color_canonical: Optional[str] = None
     color_confidence: float = 0.0
     if color_raw:
         color_canonical, color_confidence = normalize_color(color_raw)
 
-    # 6. NLP flags
+    # 7. NLP flags
     flags = extract_all_flags(description)
 
-    # 7. Confidence score — fraction of key fields successfully extracted
+    # 8. Confidence score — fraction of key fields successfully extracted
     extracted_count = sum([
+        1 if make else 0,
+        1 if model else 0,
         1 if year else 0,
-        1 if generation else 0,
         1 if body_style else 0,
         1 if transmission else 0,
         1 if color_raw else 0,
@@ -89,13 +119,13 @@ def normalize(parsed: ParsedListing) -> dict:
     ])
     field_confidence = extracted_count / len(_CONFIDENCE_FIELDS)
 
-    # Blend field confidence with color confidence (color matters a lot for comps)
+    # Blend field confidence with color confidence
     if color_canonical and color_canonical != "other":
         overall_confidence = round((field_confidence * 0.7) + (color_confidence * 0.3), 2)
     else:
         overall_confidence = round(field_confidence * 0.7, 2)
 
-    # 8. Build normalized output dict
+    # 9. Build normalized output dict
     result = {
         # Identity
         "source": raw["source"],
@@ -104,6 +134,8 @@ def normalize(parsed: ParsedListing) -> dict:
 
         # Vehicle
         "title_raw": raw.get("title_raw"),
+        "make": make,
+        "model": model,
         "year": year,
         "generation": generation,
         "body_style": body_style,
@@ -152,7 +184,7 @@ def _parse_date(value) -> Optional[object]:
     """Convert string or date to date object. Returns None on failure."""
     if value is None:
         return None
-    if hasattr(value, "year"):  # already a date/datetime
+    if hasattr(value, "year"):
         return value
     if isinstance(value, str):
         from datetime import datetime
@@ -168,37 +200,43 @@ def _detect_drivetrain(drivetrain_raw: str, combined_text: str) -> str:
     """
     Determine drivetrain from explicit parser output or text signals.
 
-    Returns "awd" for confirmed all-wheel-drive variants; "rwd" otherwise.
-
-    AWD variants of the air-cooled 911 (1989–1998 only):
-      - 964 Carrera 4 / C4  (G5, 1989–1994)
-      - 993 Carrera 4 / C4 / C4S / Targa 4  (G6, 1994–1998)
-
-    All G1–G4 cars and single-model-year RWD variants (Carrera 2, RS, Speedster,
-    Turbo, America Roadster) are rear-wheel drive.
+    Returns "awd" for confirmed all-wheel-drive, "fwd" for front-wheel-drive,
+    "rwd" otherwise (default).
     """
-    import re
+    import re as _re
 
-    # Explicit parser signal takes priority
-    if drivetrain_raw.lower() == "awd":
+    raw_lower = drivetrain_raw.lower()
+    if raw_lower == "awd":
         return "awd"
+    if raw_lower == "fwd":
+        return "fwd"
 
     text = combined_text.lower()
 
-    # Positive AWD patterns — must be Carrera 4 / C4 / C4S / Targa 4
     _AWD_PATTERNS = [
-        r"\bcarrera\s*4\b",     # "Carrera 4", "Carrera4"
-        r"\bc4s\b",             # "C4S"
-        r"\bc4\b",              # "C4" as a standalone token
-        r"\btarga\s*4\b",       # "Targa 4"
-        r"\ball[\s-]wheel\b",   # "all wheel", "all-wheel"
-        r"\bawd\b",             # spelled out
+        r"\ball[\s-]wheel(?:[\s-]drive)?\b",   # "all wheel drive", "all-wheel"
+        r"\bawd\b",
+        r"\b4wd\b",
+        r"\bfour[\s-]wheel[\s-]drive\b",
+        r"\b4x4\b",
+        r"\bquattro\b",
+        r"\bxdrive\b",
+        r"\bsymmetrical[\s-]awd\b",
+        r"\bcarrera\s*4\b",                     # Porsche Carrera 4
+        r"\bc4s\b",
+        r"\btarga\s*4\b",
     ]
     for pattern in _AWD_PATTERNS:
-        if re.search(pattern, text):
-            # Guard against false matches: "Carrera 2" or "RS" explicitly mentioned
-            # alongside "C4" text (e.g. "NOT a C4") — keep simple for now.
+        if _re.search(pattern, text):
             return "awd"
+
+    _FWD_PATTERNS = [
+        r"\bfront[\s-]wheel(?:[\s-]drive)?\b",
+        r"\bfwd\b",
+    ]
+    for pattern in _FWD_PATTERNS:
+        if _re.search(pattern, text):
+            return "fwd"
 
     return "rwd"
 

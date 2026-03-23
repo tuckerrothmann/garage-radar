@@ -27,6 +27,8 @@ class ListingOut(_Base):
     source: str
     source_url: str
     listing_status: str
+    make: Optional[str] = None
+    model: Optional[str] = None
     year: int
     generation: Optional[str] = None
     body_style: Optional[str] = None
@@ -81,6 +83,8 @@ class CompOut(_Base):
     id: uuid.UUID
     source: str
     source_url: str
+    make: Optional[str] = None
+    model: Optional[str] = None
     year: int
     generation: Optional[str] = None
     body_style: Optional[str] = None
@@ -114,7 +118,8 @@ class CompPage(_Base):
 class CompClusterOut(_Base):
     id: int
     cluster_key: str
-    generation: str
+    make: str
+    model: str
     body_style: str
     transmission: str
     window_days: int

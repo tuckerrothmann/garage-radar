@@ -25,7 +25,6 @@ function sourceBadgeLabel(source: string) {
     bat: "BaT",
     carsandbids: "Cars & Bids",
     ebay: "eBay",
-    pcarmarket: "PCA Market",
   };
   return labels[source] ?? source;
 }
@@ -98,7 +97,9 @@ export default async function ListingDetailPage({ params }: PageProps) {
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-white leading-tight">
-            {listing.year} {listing.title_raw ? listing.title_raw : "Porsche 911"}
+            {listing.year} {listing.title_raw
+              ? listing.title_raw
+              : [listing.make, listing.model].filter(Boolean).join(" ") || "Vehicle"}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -124,6 +125,8 @@ export default async function ListingDetailPage({ params }: PageProps) {
           <div className="bg-radar-card border border-radar-border rounded-lg p-4">
             <h2 className="text-sm font-semibold text-radar-muted uppercase tracking-wide mb-3">Specifications</h2>
             <dl>
+              <SpecRow label="Make" value={listing.make} />
+              <SpecRow label="Model" value={listing.model} />
               <SpecRow label="Generation" value={listing.generation} />
               <SpecRow label="Body Style" value={listing.body_style} />
               <SpecRow label="Trim" value={listing.trim} />

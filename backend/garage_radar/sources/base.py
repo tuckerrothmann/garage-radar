@@ -31,8 +31,10 @@ class ParsedListing:
     source_url: str
     scrape_ts: datetime
 
-    # Vehicle
+    # Vehicle identity
     title_raw: Optional[str] = None
+    make_raw: Optional[str] = None    # Parsed make, if available from source
+    model_raw: Optional[str] = None   # Parsed model, if available from source
     year: Optional[int] = None
     trim: Optional[str] = None
     engine_variant: Optional[str] = None

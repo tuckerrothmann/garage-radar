@@ -16,7 +16,6 @@ from garage_radar.db.models import (
     BodyStyleEnum,
     Comp,
     CompCluster,
-    GenerationEnum,
     SourceEnum,
     TransmissionEnum,
 )
@@ -29,7 +28,9 @@ _MAX_LIMIT = 200
 @router.get("/comps", response_model=CompPage)
 async def list_comps(
     session: DBSession,
-    generation: Optional[str] = Query(None, description="e.g. G6"),
+    make: Optional[str] = Query(None, description="e.g. Porsche"),
+    model: Optional[str] = Query(None, description="e.g. 911"),
+    generation: Optional[str] = Query(None, description="e.g. G6, C3 — free text"),
     body_style: Optional[str] = Query(None),
     transmission: Optional[str] = Query(None),
     source: Optional[str] = Query(None),
@@ -43,11 +44,12 @@ async def list_comps(
     """Return a paginated list of completed sales."""
     stmt = select(Comp)
 
+    if make:
+        stmt = stmt.where(Comp.make.ilike(f"%{make}%"))
+    if model:
+        stmt = stmt.where(Comp.model.ilike(f"%{model}%"))
     if generation:
-        try:
-            stmt = stmt.where(Comp.generation == GenerationEnum(generation))
-        except ValueError:
-            raise HTTPException(400, f"Invalid generation '{generation}'")
+        stmt = stmt.where(Comp.generation.ilike(f"%{generation}%"))
     if body_style:
         try:
             stmt = stmt.where(Comp.body_style == BodyStyleEnum(body_style))
@@ -88,7 +90,8 @@ async def list_comps(
 @router.get("/comps/clusters", response_model=list[CompClusterOut])
 async def list_comp_clusters(
     session: DBSession,
-    generation: Optional[str] = Query(None),
+    make: Optional[str] = Query(None, description="e.g. Porsche"),
+    model: Optional[str] = Query(None, description="e.g. 911"),
     body_style: Optional[str] = Query(None),
     transmission: Optional[str] = Query(None),
     insufficient_data: Optional[bool] = Query(None),
@@ -96,16 +99,15 @@ async def list_comp_clusters(
     """
     Return all pre-computed comp clusters.
 
-    Optionally filter by generation/body_style/transmission or
+    Optionally filter by make/model/body_style/transmission or
     insufficient_data=true to see only thin clusters.
     """
     stmt = select(CompCluster)
 
-    if generation:
-        try:
-            stmt = stmt.where(CompCluster.generation == GenerationEnum(generation))
-        except ValueError:
-            raise HTTPException(400, f"Invalid generation '{generation}'")
+    if make:
+        stmt = stmt.where(CompCluster.make.ilike(f"%{make}%"))
+    if model:
+        stmt = stmt.where(CompCluster.model.ilike(f"%{model}%"))
     if body_style:
         try:
             stmt = stmt.where(CompCluster.body_style == BodyStyleEnum(body_style))

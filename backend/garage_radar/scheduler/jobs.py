@@ -54,9 +54,6 @@ def _get_crawler(source_name: str, **kwargs) -> BaseCrawler:
         from garage_radar.sources.ebay.crawler import EbayCrawler
         # eBay doesn't use max_pages in the same way; pass through if provided
         return EbayCrawler(max_pages=kwargs.get("max_pages", 5))
-    if source_name == "pcarmarket":
-        from garage_radar.sources.pcarmarket.crawler import PcarmarketCrawler
-        return PcarmarketCrawler(**kwargs)
     raise ValueError(f"Unknown source: {source_name!r}")
 
 
@@ -70,9 +67,6 @@ def _get_parser(source_name: str) -> BaseParser:
     if source_name == "ebay":
         from garage_radar.sources.ebay.parser import EbayParser
         return EbayParser()
-    if source_name == "pcarmarket":
-        from garage_radar.sources.pcarmarket.parser import PcarmarketParser
-        return PcarmarketParser()
     raise ValueError(f"Unknown source: {source_name!r}")
 
 

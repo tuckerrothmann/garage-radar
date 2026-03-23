@@ -2,17 +2,16 @@
 Comp cluster builder.
 
 Computes median/P25/P75/min/max price bands per spec cluster
-(generation × body_style × transmission) using completed sales (comps).
+(make × model × body_style × transmission) using completed sales (comps).
 
 Design decisions:
   - Two-pass windowing: try comp_window_days (default 90). If a cluster is thin
     (< min_size comps) widen to comp_window_thin_days (default 180). If still
     thin, mark insufficient_data=True and record what we have — don't silently drop.
-  - All percentile arithmetic is done server-side via PostgreSQL percentile_cont,
-    so we never load raw comp rows into Python memory.
-  - Clusters where any of generation/body_style/transmission is NULL are excluded;
-    they can't be reliably priced.
-  - Cluster key format: "{generation}:{body_style}:{transmission}" e.g. "G6:coupe:manual"
+  - All percentile arithmetic is done server-side via PostgreSQL percentile_cont.
+  - Clusters where any of make/model/body_style/transmission is NULL are excluded.
+  - Cluster key format: "{make}:{model}:{body_style}:{transmission}"
+    e.g. "Porsche:911:coupe:manual", "Chevrolet:Corvette:convertible:manual"
   - Upsert on cluster_key — rebuilding nightly is safe.
 """
 import logging
@@ -47,27 +46,22 @@ async def rebuild_comp_clusters(
     thin_window_days = thin_window_days or settings.comp_window_thin_days
     min_size = min_size or settings.comp_cluster_min_size
 
-    # Pass 1: primary window
     primary_rows = await _fetch_cluster_stats(session, window_days)
 
-    # Pass 2: for thin clusters, widen the window
     thin_keys = {
         r["cluster_key"] for r in primary_rows
         if r["comp_count"] < min_size
     }
 
-    # Fetch thin-window stats only for thin clusters (avoid duplicate network round-trip)
     thin_rows: dict[str, dict] = {}
     if thin_keys:
         wide_rows = await _fetch_cluster_stats(session, thin_window_days)
         thin_rows = {r["cluster_key"]: r for r in wide_rows if r["cluster_key"] in thin_keys}
 
-    # Merge: prefer primary stats; fall back to thin-window for thin clusters
     merged: dict[str, dict] = {}
     for row in primary_rows:
         key = row["cluster_key"]
         if key in thin_rows:
-            # Use wider window stats; tag the window_days used
             wide = thin_rows[key]
             wide["window_days"] = thin_window_days
             wide["insufficient_data"] = wide["comp_count"] < min_size
@@ -77,7 +71,6 @@ async def rebuild_comp_clusters(
             row["insufficient_data"] = row["comp_count"] < min_size
             merged[key] = row
 
-    # Also include any clusters that only appear in the wide window
     for key, row in thin_rows.items():
         if key not in merged:
             row["window_days"] = thin_window_days
@@ -88,7 +81,6 @@ async def rebuild_comp_clusters(
         logger.info("comp_clusters: no comps found — nothing to compute.")
         return {"total": 0, "updated": 0, "insufficient_data": 0}
 
-    # Upsert all clusters
     insufficient_count = 0
     for row in merged.values():
         await _upsert_cluster(session, row)
@@ -112,17 +104,17 @@ async def rebuild_comp_clusters(
 
 async def _fetch_cluster_stats(session: AsyncSession, window_days: int) -> list[dict]:
     """
-    Query comps table for price band stats per (generation, body_style, transmission).
+    Query comps table for price band stats per (make, model, body_style, transmission).
 
-    Uses server-side percentile_cont — no Python-side sorting or statistics.
-    Only comps with non-null sale_price, generation, body_style, and transmission
+    Only comps with non-null sale_price, make, model, body_style, and transmission
     are included; partial-spec comps can't anchor a cluster.
     """
     cutoff = date.today() - timedelta(days=window_days)
 
     stmt = (
         select(
-            Comp.generation,
+            Comp.make,
+            Comp.model,
             Comp.body_style,
             Comp.transmission,
             func.count().label("comp_count"),
@@ -141,27 +133,28 @@ async def _fetch_cluster_stats(session: AsyncSession, window_days: int) -> list[
         )
         .where(
             Comp.sale_price.is_not(None),
-            Comp.generation.is_not(None),
+            Comp.make.is_not(None),
+            Comp.model.is_not(None),
             Comp.body_style.is_not(None),
             Comp.transmission.is_not(None),
             Comp.sale_date >= cutoff,
         )
-        .group_by(Comp.generation, Comp.body_style, Comp.transmission)
+        .group_by(Comp.make, Comp.model, Comp.body_style, Comp.transmission)
     )
 
     result = await session.execute(stmt)
     rows = []
     for row in result.mappings():
-        gen = row["generation"]
+        make_val = row["make"]
+        model_val = row["model"]
         bs = row["body_style"]
         tx = row["transmission"]
-        # Enum values may be enum instances or raw strings depending on driver
-        gen_val = gen.value if hasattr(gen, "value") else str(gen)
         bs_val = bs.value if hasattr(bs, "value") else str(bs)
         tx_val = tx.value if hasattr(tx, "value") else str(tx)
         rows.append({
-            "cluster_key": f"{gen_val}:{bs_val}:{tx_val}",
-            "generation": gen,
+            "cluster_key": f"{make_val}:{model_val}:{bs_val}:{tx_val}",
+            "make": make_val,
+            "model": model_val,
             "body_style": bs,
             "transmission": tx,
             "comp_count": row["comp_count"],
@@ -179,7 +172,8 @@ async def _upsert_cluster(session: AsyncSession, row: dict) -> None:
     """INSERT ... ON CONFLICT (cluster_key) DO UPDATE for a single cluster row."""
     values = {
         "cluster_key": row["cluster_key"],
-        "generation": row["generation"],
+        "make": row["make"],
+        "model": row["model"],
         "body_style": row["body_style"],
         "transmission": row["transmission"],
         "window_days": row["window_days"],
@@ -218,6 +212,6 @@ def _to_float(val) -> Optional[float]:
     return float(val)
 
 
-def cluster_key_for(generation: str, body_style: str, transmission: str) -> str:
+def cluster_key_for(make: str, model: str, body_style: str, transmission: str) -> str:
     """Canonical cluster key — also used by alert engine and API."""
-    return f"{generation}:{body_style}:{transmission}"
+    return f"{make}:{model}:{body_style}:{transmission}"

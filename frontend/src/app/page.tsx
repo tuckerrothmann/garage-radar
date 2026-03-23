@@ -6,10 +6,9 @@ import { getListings, type ListingFilters } from "@/lib/api";
 import DeltaBadge from "@/components/DeltaBadge";
 import ListingFiltersForm from "@/components/ListingFiltersForm";
 
-const GENERATIONS = ["G1", "G2", "G3", "G4", "G5", "G6"];
-const BODY_STYLES  = ["coupe", "targa", "cabriolet", "speedster"];
+const BODY_STYLES  = ["coupe", "convertible", "roadster", "fastback", "targa", "cabriolet", "speedster", "hardtop", "sedan", "wagon", "pickup"];
 const TRANSMISSIONS = ["manual", "manual-6sp", "auto"];
-const SOURCES = ["bat", "carsandbids", "ebay", "pcarmarket"];
+const SOURCES = ["bat", "carsandbids", "ebay"];
 
 interface PageProps {
   searchParams: Record<string, string | undefined>;
@@ -29,7 +28,6 @@ function sourceBadge(source: string) {
     bat: "BaT",
     carsandbids: "C&B",
     ebay: "eBay",
-    pcarmarket: "PCA Mkt",
   };
   return labels[source] ?? source;
 }
@@ -40,6 +38,8 @@ export default async function ListingsPage({ searchParams }: PageProps) {
 
   const filters: ListingFilters = {
     status:          searchParams.status ?? "active",
+    make:            searchParams.make,
+    model:           searchParams.model,
     generation:      searchParams.generation,
     body_style:      searchParams.body_style,
     transmission:    searchParams.transmission,
@@ -76,7 +76,6 @@ export default async function ListingsPage({ searchParams }: PageProps) {
       {/* Filters */}
       <ListingFiltersForm
         current={searchParams}
-        generations={GENERATIONS}
         bodyStyles={BODY_STYLES}
         transmissions={TRANSMISSIONS}
         sources={SOURCES}
@@ -123,10 +122,10 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-4 py-3 max-w-xs">
                       <div className="font-medium truncate" title={listing.title_raw ?? ""}>
-                        {listing.title_raw ?? `${listing.year} Porsche 911`}
+                        {listing.title_raw ?? `${listing.year} ${listing.make ?? ""} ${listing.model ?? ""}`.trim()}
                       </div>
                       <div className="text-radar-muted text-xs mt-0.5">
-                        {[listing.generation, listing.body_style, listing.transmission]
+                        {[listing.make, listing.model, listing.body_style, listing.transmission]
                           .filter(Boolean)
                           .join(" · ")}
                       </div>
