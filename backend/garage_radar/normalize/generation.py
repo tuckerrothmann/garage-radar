@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 # Load lookup table from normalize/generation_table.json (relative to project root)
-_TABLE_PATH = Path(__file__).parents[5] / "normalize" / "generation_table.json"
+_TABLE_PATH = Path(__file__).parents[3] / "normalize" / "generation_table.json"
 
 
 def _load_table() -> dict:

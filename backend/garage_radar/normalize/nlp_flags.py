@@ -64,7 +64,7 @@ MODIFICATION_KEYWORDS = {
     "engine_swap": [r"\bengine[- ](swap|replaced|conversion)\b", r"\b(993|964|3\.8|3\.6|3\.2)[- ]swap\b"],
     "turbo_conversion": [r"\bturbo[- ]conversion\b", r"\bturbo[- ]kit\b"],
     "aftermarket_exhaust": [r"\baftermarket[- ]exhaust\b", r"\bsport[- ]exhaust\b", r"\b(borla|akrapovic|dansk)\b"],
-    "aftermarket_wheels": [r"\baftermarket[- ]wheels?\b", r"\bnon[- ]factory[- ]wheels?\b"],
+    "aftermarket_wheels": [r"\baftermarket\b.{0,20}\bwheels?\b", r"\bnon[- ]factory[- ]wheels?\b", r"\b(bbs|fuchs|forgeline|volk|enkei|rotiform)\b"],
     "suspension_mods": [r"\blowered\b", r"\bcoilover[s]?\b", r"\bsuspension[- ](kit|upgrade)\b"],
     "roll_cage": [r"\broll[- ]cage\b", r"\brollcage\b"],
     "stripped_interior": [r"\bstripped[- ]interior\b", r"\bcage[d]?\b", r"\btrack[- ]prep\b"],
