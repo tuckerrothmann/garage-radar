@@ -156,14 +156,32 @@ async def crawl_job(
         except Exception:
             logger.exception("crawl_job[%s]: failed to write pipeline log.", source_name)
 
+    total_errors = stats["extraction_errors"] + stats["normalization_errors"]
     logger.info(
         "crawl_job[%s]: done. inserted=%d updated=%d errors=%d (%.1fs)",
         source_name,
         stats["records_inserted"],
         stats["records_updated"],
-        stats["extraction_errors"] + stats["normalization_errors"],
+        total_errors,
         stats["duration_s"] or 0,
     )
+
+    # Warn loudly if the error rate is abnormally high (> 50% of extracted records,
+    # or 0 records processed at all from a non-empty URL list).
+    extracted = stats["records_extracted"]
+    if len(urls) > 0 and extracted == 0:
+        logger.error(
+            "crawl_job[%s]: CRAWLER FAILURE — fetched %d URLs but extracted 0 records. "
+            "Check source HTML/API structure.",
+            source_name, len(urls),
+        )
+    elif extracted > 0 and total_errors / max(extracted, 1) > 0.5:
+        logger.warning(
+            "crawl_job[%s]: HIGH ERROR RATE — %d errors out of %d extracted (%.0f%%). "
+            "Possible site structure change.",
+            source_name, total_errors, extracted,
+            100 * total_errors / extracted,
+        )
     return stats
 
 
@@ -264,6 +282,77 @@ async def dedup_job() -> dict:
         stats.get("vin_pairs", 0),
         stats.get("fuzzy_pairs", 0),
         stats.get("marked", 0),
+    )
+    return stats
+
+
+# ── Generation backfill job ───────────────────────────────────────────────────
+
+async def backfill_generation_job() -> dict:
+    """
+    Backfill the generation field for listings/comps where it is NULL,
+    using the per-make generation lookup tables.
+
+    Safe to run multiple times — only rows with generation=NULL are touched.
+    Returns: {listings_updated, comps_updated, skipped}
+    """
+    from sqlalchemy import select, update
+    from garage_radar.db.models import Listing, Comp
+    from garage_radar.normalize.generation import year_to_generation
+
+    logger.info("backfill_generation_job: starting...")
+    factory = get_session_factory()
+    stats = {"listings_updated": 0, "comps_updated": 0, "skipped": 0}
+
+    async with factory() as session:
+        # ── Listings ──────────────────────────────────────────────────────────
+        rows = (await session.execute(
+            select(Listing.id, Listing.year, Listing.make, Listing.model,
+                   Listing.title_raw, Listing.description_raw)
+            .where(Listing.generation.is_(None))
+        )).all()
+
+        for row in rows:
+            gen = year_to_generation(
+                row.year,
+                description=f"{row.title_raw or ''} {row.description_raw or ''}",
+                make=row.make,
+                model=row.model,
+            )
+            if gen:
+                await session.execute(
+                    update(Listing).where(Listing.id == row.id).values(generation=gen)
+                )
+                stats["listings_updated"] += 1
+            else:
+                stats["skipped"] += 1
+
+        # ── Comps ─────────────────────────────────────────────────────────────
+        comp_rows = (await session.execute(
+            select(Comp.id, Comp.year, Comp.make, Comp.model, Comp.trim)
+            .where(Comp.generation.is_(None))
+        )).all()
+
+        for row in comp_rows:
+            gen = year_to_generation(
+                row.year,
+                description=row.trim or "",
+                make=row.make,
+                model=row.model,
+            )
+            if gen:
+                await session.execute(
+                    update(Comp).where(Comp.id == row.id).values(generation=gen)
+                )
+                stats["comps_updated"] += 1
+            else:
+                stats["skipped"] += 1
+
+        await session.commit()
+
+    logger.info(
+        "backfill_generation_job: done. listings=%d comps=%d skipped=%d",
+        stats["listings_updated"], stats["comps_updated"], stats["skipped"],
     )
     return stats
 

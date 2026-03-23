@@ -31,6 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from garage_radar.api.routers.alerts import router as alerts_router
 from garage_radar.api.routers.comps import router as comps_router
 from garage_radar.api.routers.listings import router as listings_router
+from garage_radar.api.routers.watchlist import router as watchlist_router
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(listings_router)
     app.include_router(comps_router)
     app.include_router(alerts_router)
+    app.include_router(watchlist_router)
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict:

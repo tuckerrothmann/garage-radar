@@ -10,7 +10,7 @@ Two-pass algorithm:
     possible_duplicate_id = canonical.id.
 
   Pass 2 — Fuzzy match
-    For listings that did not get a VIN match, group by (year, generation).
+    For listings that did not get a VIN match, group by (year, make, model).
     Within each group, compare every pair (O(n²), groups are small). A pair
     is considered a duplicate when ALL of:
       - different source
@@ -145,12 +145,14 @@ async def run_dedup(session: AsyncSession) -> dict:
         )
     )).scalars().all()
 
-    # Group by (year, generation) — keeps O(n²) inner loops tiny
+    # Group by (year, make, model) — keeps O(n²) inner loops tiny
+    # Using make+model (not generation) avoids false positives across different
+    # vehicles that share a year but happen to have the same generation code.
     fuzzy_groups: dict[tuple, list] = defaultdict(list)
     for row in fuzzy_rows:
-        fuzzy_groups[(row.year, row.generation)].append(row)
+        fuzzy_groups[(row.year, row.make, row.model)].append(row)
 
-    for (year, generation), group in fuzzy_groups.items():
+    for (year, make, model), group in fuzzy_groups.items():
         if len(group) < 2:
             continue
 
@@ -177,8 +179,8 @@ async def run_dedup(session: AsyncSession) -> dict:
                 stats["fuzzy_pairs"] += 1
                 stats["marked"] += 1
                 logger.debug(
-                    "dedup fuzzy year=%s gen=%s: %s (%s) → dup of %s (%s)",
-                    year, generation,
+                    "dedup fuzzy year=%s make=%s model=%s: %s (%s) → dup of %s (%s)",
+                    year, make, model,
                     dup.id, dup.source, canonical.id, canonical.source,
                 )
 

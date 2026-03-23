@@ -30,7 +30,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from garage_radar.config import get_settings
-from garage_radar.scheduler.jobs import crawl_job, dedup_job, insights_job
+from garage_radar.scheduler.jobs import backfill_generation_job, crawl_job, dedup_job, insights_job
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,8 @@ def main() -> None:
     parser.add_argument(
         "--run-now",
         metavar="JOB",
-        help="Run a specific job immediately and exit (bat | carsandbids | insights)",
+        help="Run a specific job immediately and exit "
+             "(bat | carsandbids | ebay | dedup | insights | backfill-generation)",
     )
     parser.add_argument("--log-level", default="INFO",
                         choices=["DEBUG", "INFO", "WARNING", "ERROR"])
@@ -201,10 +202,12 @@ def _run_now_and_exit(job_name: str) -> None:
             result = await dedup_job()
         elif job_name == "insights":
             result = await insights_job()
+        elif job_name == "backfill-generation":
+            result = await backfill_generation_job()
         else:
             raise ValueError(
                 f"Unknown job: {job_name!r}. "
-                "Valid: bat, carsandbids, ebay, dedup, insights"
+                "Valid: bat, carsandbids, ebay, dedup, insights, backfill-generation"
             )
         logger.info("Job %r complete: %s", job_name, result)
 

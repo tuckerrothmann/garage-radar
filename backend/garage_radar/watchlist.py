@@ -102,3 +102,38 @@ def get_watched_vehicles() -> list[WatchedVehicle]:
 
     logger.info("Watchlist loaded: %d vehicles from %s", len(vehicles), path)
     return vehicles
+
+
+def _active_path() -> Path:
+    """Return the writable watchlist path (never writes to the example file)."""
+    env_path = os.environ.get("WATCHLIST_PATH")
+    if env_path:
+        return Path(env_path)
+    return _DEFAULT_PATH
+
+
+def save_watched_vehicles(vehicles: list[WatchedVehicle]) -> None:
+    """Persist the watchlist back to config/watchlist.yaml."""
+    try:
+        import yaml
+    except ImportError:
+        raise RuntimeError("PyYAML is not installed. Run: pip install pyyaml")
+
+    path = _active_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    data = {
+        "vehicles": [
+            {
+                "make": v.make,
+                "model": v.model,
+                "year_min": v.year_min,
+                "year_max": v.year_max,
+                **({"search_override": v.search_override} if v.search_override else {}),
+            }
+            for v in vehicles
+        ]
+    }
+    with open(path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    logger.info("Watchlist saved: %d vehicles to %s", len(vehicles), path)

@@ -4,8 +4,10 @@ Run: pytest backend/tests/test_normalize.py -v
 """
 import pytest
 
+from datetime import datetime, timezone
+
 from garage_radar.normalize.generation import year_to_generation
-from garage_radar.normalize.pipeline import _detect_drivetrain
+from garage_radar.normalize.pipeline import _detect_drivetrain, normalize
 from garage_radar.normalize.nlp_flags import (
     extract_all_flags,
     extract_matching_numbers,
@@ -216,3 +218,97 @@ class TestDetectDrivetrain:
     def test_964_turbo_is_rwd(self):
         # 964 Turbo 3.3/3.6 is rear-wheel drive (unlike 993 Turbo which is AWD)
         assert _detect_drivetrain("", "1993 Porsche 964 Turbo 3.6") == "rwd"
+
+
+# ── Multi-make pipeline tests ─────────────────────────────────────────────────
+
+class TestMultiMakePipeline:
+    """End-to-end normalize() tests for non-Porsche vehicles."""
+
+    def _parsed(self, **kwargs):
+        from garage_radar.sources.base import ParsedListing
+        defaults = dict(
+            source="bat",
+            source_url="https://bringatrailer.com/listing/test/",
+            scrape_ts=datetime(2024, 6, 1, tzinfo=timezone.utc),
+        )
+        defaults.update(kwargs)
+        return ParsedListing(**defaults)
+
+    def test_corvette_c2_make_model_extracted(self):
+        p = self._parsed(
+            title_raw="1965 Chevrolet Corvette Sting Ray Coupe",
+            make_raw="Chevrolet",
+            model_raw="Corvette",
+            year=1965,
+            body_style_raw="coupe",
+            transmission_raw="4-speed manual",
+        )
+        result = normalize(p)
+        assert result["make"] == "Chevrolet"
+        assert result["model"] == "Corvette"
+        assert result["year"] == 1965
+        assert result["transmission"] == "manual"
+
+    def test_corvette_c2_generation_resolved(self):
+        p = self._parsed(
+            title_raw="1965 Chevrolet Corvette Sting Ray Coupe",
+            make_raw="Chevrolet",
+            model_raw="Corvette",
+            year=1965,
+        )
+        result = normalize(p)
+        assert result["generation"] == "C2"
+
+    def test_mustang_gen1_generation_resolved(self):
+        p = self._parsed(
+            title_raw="1968 Ford Mustang Fastback",
+            make_raw="Ford",
+            model_raw="Mustang",
+            year=1968,
+        )
+        result = normalize(p)
+        assert result["generation"] == "Gen1"
+
+    def test_mustang_fastback_body_style(self):
+        p = self._parsed(
+            title_raw="1968 Ford Mustang Fastback",
+            make_raw="Ford",
+            model_raw="Mustang",
+            year=1968,
+            body_style_raw="fastback",
+        )
+        result = normalize(p)
+        assert result["body_style"] == "fastback"
+
+    def test_make_model_from_title_fallback(self):
+        """When make_raw/model_raw are absent, pipeline extracts from title.
+        Works reliably when the model starts with a digit (e.g. 911, 356).
+        """
+        p = self._parsed(
+            title_raw="1969 Porsche 911 T Coupe",
+            year=1969,
+        )
+        result = normalize(p)
+        assert result["make"] == "Porsche"
+        assert result["model"] == "911"
+
+    def test_awd_corvette_z06_rwd(self):
+        p = self._parsed(
+            title_raw="1970 Chevrolet Corvette Z06 Coupe",
+            make_raw="Chevrolet",
+            model_raw="Corvette",
+            year=1970,
+        )
+        result = normalize(p)
+        assert result["drivetrain"] == "rwd"
+
+    def test_unknown_make_generation_is_none(self):
+        p = self._parsed(
+            title_raw="1962 DeSoto Firedome Coupe",
+            make_raw="DeSoto",
+            model_raw="Firedome",
+            year=1962,
+        )
+        result = normalize(p)
+        assert result["generation"] is None

@@ -171,6 +171,84 @@ export async function dismissAllAlerts(): Promise<{ dismissed: number }> {
   });
 }
 
+// ── Comps ─────────────────────────────────────────────────────────────────────
+
+export interface Comp {
+  id: string;
+  source: string;
+  source_url: string;
+  make: string | null;
+  model: string | null;
+  year: number;
+  generation: string | null;
+  body_style: string | null;
+  transmission: string | null;
+  mileage: number | null;
+  sale_price: number | null;
+  sale_date: string | null;
+  exterior_color_canonical: string | null;
+  matching_numbers: boolean | null;
+  original_paint: boolean | null;
+  bidder_count: number | null;
+}
+
+export interface CompPage {
+  total: number;
+  limit: number;
+  offset: number;
+  items: Comp[];
+}
+
+export async function getComps(filters: {
+  make?: string;
+  model?: string;
+  body_style?: string;
+  transmission?: string;
+  year_min?: number;
+  year_max?: number;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<CompPage> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== "") params.set(k, String(v));
+  }
+  return apiFetch<CompPage>(`/comps?${params}`);
+}
+
+// ── Comp clusters ────────────────────────────────────────────────────────────
+
+// ── Watchlist ─────────────────────────────────────────────────────────────────
+
+export interface WatchedVehicle {
+  index: number;
+  make: string;
+  model: string;
+  year_min: number;
+  year_max: number;
+  search_override: Record<string, string>;
+}
+
+export async function getWatchlist(): Promise<WatchedVehicle[]> {
+  return apiFetch<WatchedVehicle[]>("/watchlist");
+}
+
+export async function addToWatchlist(vehicle: {
+  make: string;
+  model: string;
+  year_min: number;
+  year_max: number;
+}): Promise<WatchedVehicle> {
+  return apiFetch<WatchedVehicle>("/watchlist", {
+    method: "POST",
+    body: JSON.stringify(vehicle),
+  });
+}
+
+export async function removeFromWatchlist(index: number): Promise<void> {
+  await apiFetch<void>(`/watchlist/${index}`, { method: "DELETE" });
+}
+
 // ── Comp clusters ────────────────────────────────────────────────────────────
 
 export async function getCompClusters(filters: {

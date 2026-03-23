@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
 const links = [
-  { href: "/",        label: "Listings" },
-  { href: "/alerts",  label: "Alerts"   },
-  { href: "/comps",   label: "Comp Clusters" },
+  { href: "/",          label: "Listings"      },
+  { href: "/alerts",    label: "Alerts"        },
+  { href: "/comps",     label: "Comps"         },
+  { href: "/watchlist", label: "Watchlist"     },
 ];
 
 export default function Nav() {

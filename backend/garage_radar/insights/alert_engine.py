@@ -54,6 +54,8 @@ async def run_alert_engine(session: AsyncSession) -> dict:
         stats["checked"] += 1
         listing_id = row["id"]
 
+        vehicle = _vehicle_label(row)
+
         # ── new_listing ───────────────────────────────────────────────────────
         if _is_new_listing(row):
             created = await _maybe_create_alert(
@@ -62,10 +64,11 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 alert_type=AlertTypeEnum.new_listing,
                 severity=AlertSeverityEnum.info,
                 reason=(
-                    f"New listing: {row.get('source_url', '')} — "
-                    f"asking ${row.get('asking_price', '?'):,.0f}"
+                    f"New listing: {vehicle} — "
+                    f"asking ${row.get('asking_price', '?'):,.0f} — "
+                    f"{row.get('source_url', '')}"
                     if row.get("asking_price") else
-                    f"New listing: {row.get('source_url', '')}"
+                    f"New listing: {vehicle} — {row.get('source_url', '')}"
                 ),
                 delta_pct=None,
             )
@@ -78,7 +81,7 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 listing_id=listing_id,
                 alert_type=AlertTypeEnum.relist,
                 severity=AlertSeverityEnum.info,
-                reason=f"Relist detected: {row.get('source_url', '')}",
+                reason=f"Relist detected: {vehicle} — {row.get('source_url', '')}",
                 delta_pct=None,
             )
             stats["created" if created else "skipped_dedup"] += 1
@@ -95,7 +98,7 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 severity=AlertSeverityEnum.info,
                 reason=(
                     f"Cluster has too few comps to validate price of "
-                    f"${row.get('asking_price', 0):,.0f} — "
+                    f"${row.get('asking_price', 0):,.0f} for {vehicle} — "
                     f"{row.get('source_url', '')}"
                 ),
                 delta_pct=None,
@@ -119,7 +122,7 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 alert_type=AlertTypeEnum.underpriced,
                 severity=severity,
                 reason=(
-                    f"Asking ${asking:,.0f} is "
+                    f"{vehicle} asking ${asking:,.0f} is "
                     f"{abs(pct_val):.1f}% below cluster median "
                     f"${median:,.0f} (${dollar_gap:,.0f} gap) — "
                     f"{row.get('source_url', '')}"
@@ -141,7 +144,7 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 alert_type=AlertTypeEnum.price_drop,
                 severity=AlertSeverityEnum.watch,
                 reason=(
-                    f"{label} {drop_pct:.1f}% from "
+                    f"{label} on {vehicle}: {drop_pct:.1f}% from "
                     f"${old_price:,.0f} → ${new_price:,.0f} — "
                     f"{row.get('source_url', '')}"
                 ),
@@ -165,6 +168,9 @@ async def _fetch_active_with_delta(session: AsyncSession) -> list[dict]:
             SELECT
                 id,
                 source_url,
+                make,
+                model,
+                year,
                 listing_status,
                 asking_price,
                 delta_pct,
@@ -299,6 +305,12 @@ def _detect_price_drop(
     if not candidates:
         return None
     return max(candidates, key=lambda c: c[0])  # largest drop_pct wins
+
+
+def _vehicle_label(row: dict) -> str:
+    """Return a short human-readable vehicle label, e.g. '1995 Porsche 911'."""
+    parts = [str(row.get("year", "")), row.get("make") or "", row.get("model") or ""]
+    return " ".join(p for p in parts if p).strip() or "vehicle"
 
 
 def _underpriced_severity(delta_pct: float) -> AlertSeverityEnum:

@@ -109,8 +109,91 @@ def upgrade() -> None:
     # Only safe once all columns referencing it have been converted to TEXT.
     op.execute("DROP TYPE IF EXISTS generation_enum")
 
+    # ── 13. Recreate active_listings_with_delta view ──────────────────────────
+    # Join now uses make+model instead of generation. Also adds price_history
+    # and created_at (needed by the alert engine) and make/model for context.
+    op.execute("DROP VIEW IF EXISTS active_listings_with_delta")
+    op.execute("""
+        CREATE VIEW active_listings_with_delta AS
+        SELECT
+            l.id,
+            l.source,
+            l.source_url,
+            l.make,
+            l.model,
+            l.year,
+            l.generation,
+            l.body_style,
+            l.transmission,
+            l.asking_price,
+            l.listing_status,
+            l.location,
+            l.mileage,
+            l.exterior_color_canonical,
+            l.normalization_confidence,
+            l.price_history,
+            l.created_at,
+            cc.median_price         AS cluster_median,
+            cc.p25_price            AS cluster_p25,
+            cc.p75_price            AS cluster_p75,
+            cc.insufficient_data    AS cluster_insufficient_data,
+            CASE
+                WHEN cc.median_price IS NOT NULL AND l.asking_price IS NOT NULL
+                THEN ROUND(
+                    ((l.asking_price - cc.median_price) / cc.median_price * 100)::numeric,
+                    1
+                )
+                ELSE NULL
+            END                     AS delta_pct
+        FROM listings l
+        LEFT JOIN comp_clusters cc
+            ON  cc.make         = l.make
+            AND cc.model        = l.model
+            AND cc.body_style   = l.body_style
+            AND cc.transmission = l.transmission
+        WHERE l.listing_status IN ('active', 'relist')
+    """)
+
 
 def downgrade() -> None:
+    # Restore active_listings_with_delta view to original (generation-based join)
+    op.execute("DROP VIEW IF EXISTS active_listings_with_delta")
+    op.execute("""
+        CREATE VIEW active_listings_with_delta AS
+        SELECT
+            l.id,
+            l.source,
+            l.source_url,
+            l.year,
+            l.generation,
+            l.body_style,
+            l.transmission,
+            l.asking_price,
+            l.listing_status,
+            l.location,
+            l.mileage,
+            l.exterior_color_canonical,
+            l.normalization_confidence,
+            cc.median_price         AS cluster_median,
+            cc.p25_price            AS cluster_p25,
+            cc.p75_price            AS cluster_p75,
+            cc.insufficient_data    AS cluster_insufficient_data,
+            CASE
+                WHEN cc.median_price IS NOT NULL AND l.asking_price IS NOT NULL
+                THEN ROUND(
+                    ((l.asking_price - cc.median_price) / cc.median_price * 100)::numeric,
+                    1
+                )
+                ELSE NULL
+            END                     AS delta_pct
+        FROM listings l
+        LEFT JOIN comp_clusters cc
+            ON  cc.generation   = l.generation
+            AND cc.body_style   = l.body_style
+            AND cc.transmission = l.transmission
+        WHERE l.listing_status IN ('active', 'relist')
+    """)
+
     # Recreate generation_enum
     op.execute(
         "CREATE TYPE generation_enum AS ENUM ('G1', 'G2', 'G3', 'G4', 'G5', 'G6')"

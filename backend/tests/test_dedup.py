@@ -37,7 +37,8 @@ def _listing(
     *,
     source=SourceEnum.bat,
     year=1985,
-    generation="G4",
+    make="Porsche",
+    model="911",
     mileage=50_000,
     asking_price=60_000.0,
     vin=None,
@@ -50,7 +51,8 @@ def _listing(
     m.id = uuid.uuid4()
     m.source = source
     m.year = year
-    m.generation = generation
+    m.make = make
+    m.model = model
     m.mileage = mileage
     m.asking_price = asking_price
     m.vin = vin
@@ -255,10 +257,10 @@ class TestRunDedupVIN:
 class TestRunDedupFuzzy:
     @pytest.mark.asyncio
     async def test_fuzzy_match_detected(self):
-        a = _listing(source=SourceEnum.bat,        year=1985, generation="G4",
+        a = _listing(source=SourceEnum.bat,        year=1985, make="Porsche", model="911",
                      mileage=50_000, asking_price=60_000, created_at=_NOW,
                      normalization_confidence=0.9)
-        b = _listing(source=SourceEnum.carsandbids, year=1985, generation="G4",
+        b = _listing(source=SourceEnum.carsandbids, year=1985, make="Porsche", model="911",
                      mileage=50_500, asking_price=61_000, created_at=_NOW + timedelta(days=5),
                      normalization_confidence=0.7)
         session = _make_session([], [a, b])  # no VIN rows, fuzzy candidates
@@ -271,9 +273,9 @@ class TestRunDedupFuzzy:
 
     @pytest.mark.asyncio
     async def test_fuzzy_same_source_skipped(self):
-        a = _listing(source=SourceEnum.bat, year=1985, generation="G4",
+        a = _listing(source=SourceEnum.bat, year=1985, make="Porsche", model="911",
                      mileage=50_000, asking_price=60_000, created_at=_NOW)
-        b = _listing(source=SourceEnum.bat, year=1985, generation="G4",
+        b = _listing(source=SourceEnum.bat, year=1985, make="Porsche", model="911",
                      mileage=50_500, asking_price=61_000, created_at=_NOW)
         session = _make_session([], [a, b])
 
@@ -314,13 +316,29 @@ class TestRunDedupFuzzy:
 
     @pytest.mark.asyncio
     async def test_fuzzy_different_year_skipped(self):
-        a = _listing(source=SourceEnum.bat,        year=1985, generation="G4", created_at=_NOW)
-        b = _listing(source=SourceEnum.carsandbids, year=1987, generation="G4", created_at=_NOW)
+        a = _listing(source=SourceEnum.bat,        year=1985, make="Porsche", model="911",
+                     created_at=_NOW)
+        b = _listing(source=SourceEnum.carsandbids, year=1987, make="Porsche", model="911",
+                     created_at=_NOW)
         session = _make_session([], [a, b])
 
         stats = await run_dedup(session)
 
         # Different year → different group → no match
+        assert stats["fuzzy_pairs"] == 0
+
+    @pytest.mark.asyncio
+    async def test_fuzzy_different_make_skipped(self):
+        # 1967 Corvette and 1967 Mustang — same year, different make → different group
+        a = _listing(source=SourceEnum.bat,        year=1967, make="Chevrolet", model="Corvette",
+                     mileage=50_000, asking_price=60_000, created_at=_NOW)
+        b = _listing(source=SourceEnum.carsandbids, year=1967, make="Ford",      model="Mustang",
+                     mileage=50_500, asking_price=61_000, created_at=_NOW)
+        session = _make_session([], [a, b])
+
+        stats = await run_dedup(session)
+
+        # Different make → different group → no false positive
         assert stats["fuzzy_pairs"] == 0
 
     @pytest.mark.asyncio

@@ -28,7 +28,7 @@ from garage_radar.sources.base import BaseParser, ParsedComp, ParsedListing, Raw
 
 logger = logging.getLogger(__name__)
 
-_YEAR_RE = re.compile(r"\b(196[5-9]|19[7-9]\d|1998)\b")
+_YEAR_RE = re.compile(r"\b(19\d{2}|20[012]\d)\b")
 _MILEAGE_RE = re.compile(r"([\d,]+)\s*(?:miles?|mi\.?)", re.IGNORECASE)
 _VIN_RE = re.compile(r"\b([A-HJ-NPR-Z0-9]{17})\b")
 _PRICE_CLEAN_RE = re.compile(r"[^\d.]")
@@ -49,6 +49,8 @@ class EbayParser(BaseParser):
             scrape_ts=raw.fetched_at,
             title_raw=item.get("Title"),
             year=self._extract_year(item),
+            make_raw=self._spec_value(item, "Make"),
+            model_raw=self._spec_value(item, "Model"),
             asking_price=self._extract_price(item),
             currency=self._extract_currency(item),
             mileage=self._extract_mileage(item),
@@ -81,6 +83,8 @@ class EbayParser(BaseParser):
             scrape_ts=raw.fetched_at,
             title_raw=item.get("Title"),
             year=self._extract_year(item),
+            make_raw=self._spec_value(item, "Make"),
+            model_raw=self._spec_value(item, "Model"),
             final_price=self._extract_price(item),
             currency=self._extract_currency(item),
             mileage=self._extract_mileage(item),
