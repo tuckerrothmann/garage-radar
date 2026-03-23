@@ -31,14 +31,22 @@ _SOURCE = "bat"
 
 # ── Regex patterns ────────────────────────────────────────────────────────────
 
-_YEAR_RE = re.compile(r"\b(19[6-9]\d|1998)\b")
+_YEAR_RE = re.compile(r"\b(19\d{2}|20[012]\d)\b")
 _MILEAGE_RE = re.compile(r"([\d,]+)\s*(?:miles?|mi\.?)", re.IGNORECASE)
 _PRICE_RE = re.compile(r"\$\s*([\d,]+)")
 _BIDS_RE = re.compile(r"(\d+)\s+bids?", re.IGNORECASE)
 _VIN_RE = re.compile(r"\b([A-HJ-NPR-Z0-9]{17})\b")
 _ENGINE_RE = re.compile(
-    r"\b(2\.0|2\.2|2\.4|2\.7|2\.7[- ]?[Tt]urbo|3\.0|3\.0[- ]?[Tt]urbo|"
-    r"3\.2|3\.3[- ]?[Tt]urbo|3\.6|3\.8|3\.5)\b",
+    r"\b("
+    # Metric displacements (1.0–9.9L)
+    r"[1-9]\.\d(?:\s*(?:L|liter|litre))?"
+    r"|"
+    # Common cubic inch displacements (American classics/muscle)
+    r"(?:265|283|302|305|327|348|350|351|390|396|400|402|427|428|429|454|460|496|502)"
+    r"|"
+    # Engine codes and configurations
+    r"LS[1-9X]?|LT[14]|V(?:6|8|10|12)|I[46]|H[46]|Hemi"
+    r")\b",
     re.IGNORECASE,
 )
 _CHASSIS_LABEL_RE = re.compile(r"(?:chassis|vin|serial)[:\s]+", re.I)
@@ -50,21 +58,45 @@ _BODY_STYLE_MAP = [
     ("speedster", "speedster"),
     ("cabriolet", "cabriolet"),
     ("cabrio", "cabriolet"),
-    ("convertible", "cabriolet"),
     ("targa", "targa"),
+    ("roadster", "roadster"),
+    ("fastback", "fastback"),
+    ("convertible", "convertible"),
+    ("drop-top", "convertible"),
+    ("drop top", "convertible"),
     ("coupe", "coupe"),
     ("coupé", "coupe"),
+    ("hard-top", "hardtop"),
+    ("hardtop", "hardtop"),
+    ("sedan", "sedan"),
+    ("station wagon", "wagon"),
+    ("estate", "wagon"),
+    ("wagon", "wagon"),
+    ("pickup truck", "pickup"),
+    ("pickup", "pickup"),
 ]
 
 _TRANSMISSION_MAP = [
-    (re.compile(r"\btiptronic\b", re.I), "auto"),
+    (re.compile(
+        r"\b(tiptronic|powerglide|turbohydra?-?matic|th[-\s]?350|th[-\s]?400|"
+        r"4l60|4l80|automatic|auto-?matic)\b", re.I), "auto"),
     (re.compile(r"\b6[-\s]?speed\b", re.I), "manual-6sp"),
-    (re.compile(r"\b(5[-\s]?speed|g50|915|manual)\b", re.I), "manual"),
+    (re.compile(
+        r"\b([3-5][-\s]?speed|muncie|saginaw|toploader|t[-\s]?10|"
+        r"borg[-\s]?warner|manual)\b", re.I), "manual"),
 ]
 
 _DRIVETRAIN_MAP = [
-    (re.compile(r"\b(carrera\s*4|c4|all[-\s]?wheel|awd)\b", re.I), "awd"),
+    (re.compile(
+        r"\b(carrera\s*4|targa\s*4|all[-\s]?wheel|awd|4x4|4wd|quattro|xdrive|"
+        r"symmetrical\s*awd)\b", re.I), "awd"),
+    (re.compile(r"\b(fwd|front[-\s]?wheel|front[-\s]?drive)\b", re.I), "fwd"),
 ]
+
+_TITLE_MAKE_MODEL_RE = re.compile(
+    r"^\s*(?P<make>[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)?)\s+"
+    r"(?P<model>[A-Z0-9][A-Za-z0-9\-\.]+)"
+)
 
 
 class BaTParser(BaseParser):
@@ -117,9 +149,12 @@ class BaTParser(BaseParser):
         specs = self._extract_specs(soup)
         combined_text = f"{title} {description or ''} {' '.join(specs.values())}"
 
+        make_raw, model_raw = self._extract_make_model(title)
         return {
             "title_raw": title,
             "year": year,
+            "make_raw": make_raw,
+            "model_raw": model_raw,
             "trim": self._extract_trim(title),
             "engine_variant": self._extract_engine_variant(specs, combined_text),
             "body_style_raw": self._extract_body_style(combined_text),
@@ -158,8 +193,22 @@ class BaTParser(BaseParser):
 
     def _extract_trim(self, title: str) -> Optional[str]:
         trimmed = _YEAR_RE.sub("", title).strip()
-        trimmed = re.sub(r"\bPorsche\s+91[0-9]\b", "", trimmed, flags=re.I).strip()
+        # Strip leading "Make Model" (e.g. "Porsche 911", "Ford Mustang", "Mercedes-Benz 280SL")
+        m = re.match(
+            r"^[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)?\s+[A-Z0-9][A-Za-z0-9\-\.]+\s*",
+            trimmed,
+        )
+        if m:
+            trimmed = trimmed[m.end():]
         return trimmed.strip(", ") or None
+
+    def _extract_make_model(self, title: str) -> tuple[Optional[str], Optional[str]]:
+        """Extract make and model from '{year} {Make} {Model}' title pattern."""
+        without_year = _YEAR_RE.sub("", title).strip()
+        m = _TITLE_MAKE_MODEL_RE.match(without_year)
+        if m:
+            return m.group("make").strip(), m.group("model").strip()
+        return None, None
 
     def _extract_description(self, soup: BeautifulSoup) -> Optional[str]:
         for selector in [
@@ -215,7 +264,7 @@ class BaTParser(BaseParser):
             text_lower = text.lower()
             if _MILEAGE_RE.search(text) and "mileage" not in specs:
                 specs["mileage"] = text
-            elif any(kw in text_lower for kw in ("tiptronic", "speed", "manual", "g50", "915")) \
+            elif any(kw in text_lower for kw in ("tiptronic", "speed", "manual", "automatic", "powerglide")) \
                     and "transmission" not in specs:
                 specs["transmission"] = text
             elif _ENGINE_RE.search(text) and "engine" not in specs:
