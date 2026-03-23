@@ -29,6 +29,10 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+
+# SQLAlchemy defaults to using enum member *names* as DB values.
+# Our enums use *values* (e.g. "blue-metallic"), so we force that here.
+_enum_values = lambda x: [e.value for e in x]  # noqa: E731
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -177,14 +181,14 @@ class Listing(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     source: Mapped[SourceEnum] = mapped_column(
-        Enum(SourceEnum, name="source_enum"), nullable=False
+        Enum(SourceEnum, name="source_enum", values_callable=_enum_values), nullable=False
     )
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
     scrape_ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     listing_status: Mapped[ListingStatusEnum] = mapped_column(
-        Enum(ListingStatusEnum, name="listing_status_enum"),
+        Enum(ListingStatusEnum, name="listing_status_enum", values_callable=_enum_values),
         nullable=False,
         default=ListingStatusEnum.active,
     )
@@ -195,27 +199,27 @@ class Listing(Base):
     year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     generation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_style: Mapped[Optional[BodyStyleEnum]] = mapped_column(
-        Enum(BodyStyleEnum, name="body_style_enum"), nullable=True
+        Enum(BodyStyleEnum, name="body_style_enum", values_callable=_enum_values), nullable=True
     )
     trim: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     drivetrain: Mapped[DrivetrainEnum] = mapped_column(
-        Enum(DrivetrainEnum, name="drivetrain_enum"),
+        Enum(DrivetrainEnum, name="drivetrain_enum", values_callable=_enum_values),
         nullable=False,
         default=DrivetrainEnum.rwd,
     )
     engine_variant: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     transmission: Mapped[Optional[TransmissionEnum]] = mapped_column(
-        Enum(TransmissionEnum, name="transmission_enum"), nullable=True
+        Enum(TransmissionEnum, name="transmission_enum", values_callable=_enum_values), nullable=True
     )
     exterior_color_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     exterior_color_canonical: Mapped[Optional[ColorCanonicalEnum]] = mapped_column(
-        Enum(ColorCanonicalEnum, name="color_canonical_enum"), nullable=True
+        Enum(ColorCanonicalEnum, name="color_canonical_enum", values_callable=_enum_values), nullable=True
     )
     interior_color_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     mileage: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     vin: Mapped[Optional[str]] = mapped_column(String(17), nullable=True)
     title_status: Mapped[TitleStatusEnum] = mapped_column(
-        Enum(TitleStatusEnum, name="title_status_enum"),
+        Enum(TitleStatusEnum, name="title_status_enum", values_callable=_enum_values),
         nullable=False,
         default=TitleStatusEnum.unknown,
     )
@@ -223,7 +227,7 @@ class Listing(Base):
     # Price
     asking_price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     currency: Mapped[CurrencyEnum] = mapped_column(
-        Enum(CurrencyEnum, name="currency_enum"),
+        Enum(CurrencyEnum, name="currency_enum", values_callable=_enum_values),
         nullable=False,
         default=CurrencyEnum.USD,
     )
@@ -245,7 +249,7 @@ class Listing(Base):
     description_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     listing_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     seller_type: Mapped[Optional[SellerTypeEnum]] = mapped_column(
-        Enum(SellerTypeEnum, name="seller_type_enum"), nullable=True
+        Enum(SellerTypeEnum, name="seller_type_enum", values_callable=_enum_values), nullable=True
     )
     seller_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -287,7 +291,7 @@ class Comp(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     source: Mapped[SourceEnum] = mapped_column(
-        Enum(SourceEnum, name="source_enum"), nullable=False
+        Enum(SourceEnum, name="source_enum", values_callable=_enum_values), nullable=False
     )
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
     make: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -295,15 +299,15 @@ class Comp(Base):
     year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     generation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     body_style: Mapped[Optional[BodyStyleEnum]] = mapped_column(
-        Enum(BodyStyleEnum, name="body_style_enum"), nullable=True
+        Enum(BodyStyleEnum, name="body_style_enum", values_callable=_enum_values), nullable=True
     )
     trim: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     transmission: Mapped[Optional[TransmissionEnum]] = mapped_column(
-        Enum(TransmissionEnum, name="transmission_enum"), nullable=True
+        Enum(TransmissionEnum, name="transmission_enum", values_callable=_enum_values), nullable=True
     )
     engine_variant: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     exterior_color_canonical: Mapped[Optional[ColorCanonicalEnum]] = mapped_column(
-        Enum(ColorCanonicalEnum, name="color_canonical_enum"), nullable=True
+        Enum(ColorCanonicalEnum, name="color_canonical_enum", values_callable=_enum_values), nullable=True
     )
     exterior_color_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     mileage: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -311,12 +315,12 @@ class Comp(Base):
     sale_price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     sale_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     price_type: Mapped[PriceTypeEnum] = mapped_column(
-        Enum(PriceTypeEnum, name="price_type_enum"),
+        Enum(PriceTypeEnum, name="price_type_enum", values_callable=_enum_values),
         nullable=False,
         default=PriceTypeEnum.auction_final,
     )
     currency: Mapped[CurrencyEnum] = mapped_column(
-        Enum(CurrencyEnum, name="currency_enum"),
+        Enum(CurrencyEnum, name="currency_enum", values_callable=_enum_values),
         nullable=False,
         default=CurrencyEnum.USD,
     )
@@ -348,10 +352,10 @@ class CompCluster(Base):
     make: Mapped[str] = mapped_column(Text, nullable=False)
     model: Mapped[str] = mapped_column(Text, nullable=False)
     body_style: Mapped[BodyStyleEnum] = mapped_column(
-        Enum(BodyStyleEnum, name="body_style_enum"), nullable=False
+        Enum(BodyStyleEnum, name="body_style_enum", values_callable=_enum_values), nullable=False
     )
     transmission: Mapped[TransmissionEnum] = mapped_column(
-        Enum(TransmissionEnum, name="transmission_enum"), nullable=False
+        Enum(TransmissionEnum, name="transmission_enum", values_callable=_enum_values), nullable=False
     )
     window_days: Mapped[int] = mapped_column(Integer, nullable=False, default=90)
     comp_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -380,7 +384,7 @@ class Alert(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     alert_type: Mapped[AlertTypeEnum] = mapped_column(
-        Enum(AlertTypeEnum, name="alert_type_enum"), nullable=False
+        Enum(AlertTypeEnum, name="alert_type_enum", values_callable=_enum_values), nullable=False
     )
     triggered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -391,12 +395,12 @@ class Alert(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     delta_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     severity: Mapped[AlertSeverityEnum] = mapped_column(
-        Enum(AlertSeverityEnum, name="alert_severity_enum"),
+        Enum(AlertSeverityEnum, name="alert_severity_enum", values_callable=_enum_values),
         nullable=False,
         default=AlertSeverityEnum.info,
     )
     status: Mapped[AlertStatusEnum] = mapped_column(
-        Enum(AlertStatusEnum, name="alert_status_enum"),
+        Enum(AlertStatusEnum, name="alert_status_enum", values_callable=_enum_values),
         nullable=False,
         default=AlertStatusEnum.open,
     )
@@ -435,7 +439,7 @@ class PipelineLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source: Mapped[SourceEnum] = mapped_column(
-        Enum(SourceEnum, name="source_enum"), nullable=False
+        Enum(SourceEnum, name="source_enum", values_callable=_enum_values), nullable=False
     )
     run_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

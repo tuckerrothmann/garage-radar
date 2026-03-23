@@ -5,7 +5,7 @@ import { getWatchlist } from "@/lib/api";
 import WatchlistClient from "./WatchlistClient";
 
 export default async function WatchlistPage() {
-  let vehicles;
+  let vehicles: import("@/lib/api").WatchedVehicle[] = [];
   let error: string | null = null;
   try {
     vehicles = await getWatchlist();

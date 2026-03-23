@@ -45,8 +45,8 @@ export default async function CompsPage({ searchParams }: PageProps) {
   const make  = searchParams.make;
   const model = searchParams.model;
 
-  let clusters;
-  let compsPage;
+  let clusters: import("@/lib/api").CompCluster[] | undefined;
+  let compsPage: import("@/lib/api").CompPage | undefined;
   let error: string | null = null;
 
   try {
