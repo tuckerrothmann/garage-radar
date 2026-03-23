@@ -28,6 +28,7 @@ node_modules/
 .astro/
 dist/
 out/
+*.tsbuildinfo
 
 # ── Data ───────────────────────────────────────────────────────
 # Raw HTML snapshots — large, not useful in git
