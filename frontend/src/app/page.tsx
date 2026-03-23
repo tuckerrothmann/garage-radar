@@ -39,15 +39,16 @@ export default async function ListingsPage({ searchParams }: PageProps) {
   const offset = Number(searchParams.offset ?? 0);
 
   const filters: ListingFilters = {
-    status:       searchParams.status ?? "active",
-    generation:   searchParams.generation,
-    body_style:   searchParams.body_style,
-    transmission: searchParams.transmission,
-    source:       searchParams.source,
-    year_min:     searchParams.year_min ? Number(searchParams.year_min) : undefined,
-    year_max:     searchParams.year_max ? Number(searchParams.year_max) : undefined,
-    price_min:    searchParams.price_min ? Number(searchParams.price_min) : undefined,
-    price_max:    searchParams.price_max ? Number(searchParams.price_max) : undefined,
+    status:          searchParams.status ?? "active",
+    generation:      searchParams.generation,
+    body_style:      searchParams.body_style,
+    transmission:    searchParams.transmission,
+    source:          searchParams.source,
+    year_min:        searchParams.year_min ? Number(searchParams.year_min) : undefined,
+    year_max:        searchParams.year_max ? Number(searchParams.year_max) : undefined,
+    price_min:       searchParams.price_min ? Number(searchParams.price_min) : undefined,
+    price_max:       searchParams.price_max ? Number(searchParams.price_max) : undefined,
+    confidence_min:  searchParams.confidence_min ? Number(searchParams.confidence_min) : undefined,
     limit,
     offset,
   };
@@ -80,6 +81,11 @@ export default async function ListingsPage({ searchParams }: PageProps) {
         transmissions={TRANSMISSIONS}
         sources={SOURCES}
       />
+      {searchParams.confidence_min && (
+        <div className="text-xs text-radar-muted">
+          Showing listings with confidence ≥ {Number(searchParams.confidence_min) * 100}%
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-950 border border-red-700 rounded-lg p-4 text-red-300">

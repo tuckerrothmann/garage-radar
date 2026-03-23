@@ -2,7 +2,8 @@
 Listings router — GET /listings, GET /listings/{id}
 
 Filter params: generation, body_style, transmission, status, source,
-               year_min, year_max, price_min, price_max
+               year_min, year_max, price_min, price_max,
+               confidence_min (0.0–1.0)
 Pagination:    limit (max 200, default 50), offset (default 0)
 
 Each listing response includes cluster_median and delta_pct from the
@@ -47,6 +48,8 @@ async def list_listings(
     year_max: Optional[int] = Query(None, ge=1965, le=1998),
     price_min: Optional[float] = Query(None, ge=0),
     price_max: Optional[float] = Query(None, ge=0),
+    confidence_min: Optional[float] = Query(None, ge=0.0, le=1.0,
+                                             description="Minimum normalization confidence (0–1)"),
     limit: int = Query(50, ge=1, le=_MAX_LIMIT),
     offset: int = Query(0, ge=0),
 ) -> ListingPage:
@@ -87,6 +90,8 @@ async def list_listings(
         stmt = stmt.where(Listing.asking_price >= price_min)
     if price_max is not None:
         stmt = stmt.where(Listing.asking_price <= price_max)
+    if confidence_min is not None:
+        stmt = stmt.where(Listing.normalization_confidence >= confidence_min)
 
     # Count total (separate query to avoid subquery overhead on small data)
     count_result = await session.scalar(select(func.count()).select_from(stmt.subquery()))

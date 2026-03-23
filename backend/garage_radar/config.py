@@ -45,7 +45,9 @@ class Settings(BaseSettings):
 
     # Insight engine thresholds
     underpriced_alert_threshold: float = -0.15   # -15% vs cluster median
-    price_drop_alert_threshold: float = 0.05     # 5% drop
+    underpriced_min_dollar: float = 2_000        # Must be ≥ $2k below median to alert
+    price_drop_alert_threshold: float = 0.05     # 5% single-period OR cumulative drop
+    price_drop_min_dollar: float = 1_500         # Must be ≥ $1.5k absolute drop to alert
     comp_cluster_min_size: int = 5
     comp_window_days: int = 90
     comp_window_thin_days: int = 180              # Extended for thin clusters

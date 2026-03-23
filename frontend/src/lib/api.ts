@@ -121,6 +121,7 @@ export interface ListingFilters {
   year_max?: number;
   price_min?: number;
   price_max?: number;
+  confidence_min?: number;
   limit?: number;
   offset?: number;
 }

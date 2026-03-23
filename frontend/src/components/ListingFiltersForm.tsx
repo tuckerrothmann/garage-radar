@@ -98,6 +98,11 @@ export default function ListingFiltersForm({
       <NumberInput name="year_max"   label="Year max"   placeholder="1998" />
       <NumberInput name="price_min"  label="Price min"  placeholder="$0"   />
       <NumberInput name="price_max"  label="Price max"  placeholder="$500k"/>
+      <Select
+        name="confidence_min"
+        label="Confidence"
+        options={["0.4", "0.6", "0.8"]}
+      />
 
       {/* Reset */}
       <button

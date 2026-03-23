@@ -36,7 +36,7 @@ _FALLBACK_TABLE = {
     "ambiguous_years": {
         "1989": {
             "keywords_g4": ["carrera 3.2", "speedster", "g50"],
-            "keywords_g5": ["964", "carrera 2", "carrera 4", "tiptronic"],
+            "keywords_g5": ["964", "carrera 2", "carrera 4", "c4", "c4s", "tiptronic"],
         },
         "1994": {
             "keywords_g5": ["964"],

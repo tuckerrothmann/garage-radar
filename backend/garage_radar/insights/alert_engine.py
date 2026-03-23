@@ -42,6 +42,7 @@ async def run_alert_engine(session: AsyncSession) -> dict:
     """
     settings = get_settings()
     underpriced_threshold = settings.underpriced_alert_threshold    # e.g. -0.15
+    underpriced_min_dollar = settings.underpriced_min_dollar        # e.g. 2000
     price_drop_threshold = settings.price_drop_alert_threshold      # e.g. 0.05
 
     stats = {"checked": 0, "created": 0, "skipped_dedup": 0}
@@ -104,6 +105,13 @@ async def run_alert_engine(session: AsyncSession) -> dict:
         elif delta_pct is not None and float(delta_pct) <= underpriced_threshold * 100:
             # delta_pct from the view is already a percentage (e.g. -22.5)
             pct_val = float(delta_pct)
+            asking = float(row.get("asking_price") or 0)
+            median = float(row.get("cluster_median") or 0)
+            dollar_gap = median - asking  # positive when underpriced
+            # Apply dollar floor to avoid noise on low-priced listings
+            if dollar_gap < underpriced_min_dollar:
+                stats["skipped_dedup"] += 1
+                continue
             severity = _underpriced_severity(pct_val)
             created = await _maybe_create_alert(
                 session,
@@ -111,9 +119,9 @@ async def run_alert_engine(session: AsyncSession) -> dict:
                 alert_type=AlertTypeEnum.underpriced,
                 severity=severity,
                 reason=(
-                    f"Asking ${row.get('asking_price', 0):,.0f} is "
+                    f"Asking ${asking:,.0f} is "
                     f"{abs(pct_val):.1f}% below cluster median "
-                    f"${row.get('cluster_median', 0):,.0f} — "
+                    f"${median:,.0f} (${dollar_gap:,.0f} gap) — "
                     f"{row.get('source_url', '')}"
                 ),
                 delta_pct=pct_val,
@@ -121,16 +129,19 @@ async def run_alert_engine(session: AsyncSession) -> dict:
             stats["created" if created else "skipped_dedup"] += 1
 
         # ── price_drop ────────────────────────────────────────────────────────
-        drop = _detect_price_drop(row, price_drop_threshold)
+        drop = _detect_price_drop(
+            row, price_drop_threshold, settings.price_drop_min_dollar
+        )
         if drop is not None:
-            drop_pct, old_price, new_price = drop
+            drop_pct, old_price, new_price, is_cumulative = drop
+            label = "Cumulative price drop" if is_cumulative else "Price drop"
             created = await _maybe_create_alert(
                 session,
                 listing_id=listing_id,
                 alert_type=AlertTypeEnum.price_drop,
                 severity=AlertSeverityEnum.watch,
                 reason=(
-                    f"Price dropped {drop_pct:.1f}% from "
+                    f"{label} {drop_pct:.1f}% from "
                     f"${old_price:,.0f} → ${new_price:,.0f} — "
                     f"{row.get('source_url', '')}"
                 ),
@@ -223,15 +234,25 @@ def _is_new_listing(row: dict) -> bool:
 
 
 def _detect_price_drop(
-    row: dict, threshold: float
-) -> Optional[tuple[float, float, float]]:
+    row: dict,
+    threshold: float,
+    min_dollar: float = 0.0,
+) -> Optional[tuple[float, float, float, bool]]:
     """
-    Returns (drop_pct, old_price, new_price) if a significant drop is detected,
-    else None.
+    Detect a price drop — both single-period and cumulative.
 
-    price_history is a JSONB list of {"price": float, "ts": str} entries.
-    We compare current asking_price against the most recent history entry.
-    A drop qualifies if (old - new) / old >= threshold.
+    Returns (drop_pct, old_price, new_price, is_cumulative) if a significant
+    drop is detected, else None.
+
+    price_history is a JSONB list of {"price": float, "ts": str} entries,
+    sorted oldest-first.
+
+    Two checks:
+      1. Single-period: current asking vs most-recent history entry.
+      2. Cumulative:    current asking vs oldest history entry (catches gradual drops).
+
+    Whichever produces the larger qualifying drop is returned.
+    A drop qualifies when: drop_pct >= threshold AND dollar drop >= min_dollar.
     """
     asking_price = row.get("asking_price")
     price_history = row.get("price_history")
@@ -250,22 +271,34 @@ def _detect_price_drop(
     if not isinstance(price_history, list) or not price_history:
         return None
 
-    # Most recent historical price
-    last_entry = price_history[-1]
-    old_price = last_entry.get("price") if isinstance(last_entry, dict) else None
-    if old_price is None or old_price <= 0:
-        return None
-
     new_price = float(asking_price)
-    old_price = float(old_price)
-    if old_price <= new_price:
+
+    def _check(entry, is_cumulative: bool) -> Optional[tuple[float, float, float, bool]]:
+        old = entry.get("price") if isinstance(entry, dict) else None
+        if old is None or float(old) <= 0:
+            return None
+        old_f = float(old)
+        if old_f <= new_price:
+            return None
+        drop_pct = (old_f - new_price) / old_f
+        dollar_drop = old_f - new_price
+        if drop_pct >= threshold and dollar_drop >= min_dollar:
+            return drop_pct * 100, old_f, new_price, is_cumulative
         return None
 
-    drop_pct = (old_price - new_price) / old_price
-    if drop_pct >= threshold:
-        return drop_pct * 100, old_price, new_price
+    # Single-period: most recent history entry
+    single = _check(price_history[-1], is_cumulative=False)
 
-    return None
+    # Cumulative: oldest history entry (only meaningful if history has ≥ 2 entries)
+    cumulative = None
+    if len(price_history) >= 2:
+        cumulative = _check(price_history[0], is_cumulative=True)
+
+    # Return whichever drop is larger (if any)
+    candidates = [c for c in (single, cumulative) if c is not None]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda c: c[0])  # largest drop_pct wins
 
 
 def _underpriced_severity(delta_pct: float) -> AlertSeverityEnum:

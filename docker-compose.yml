@@ -94,12 +94,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Must be a URL the browser can reach (not the internal docker hostname).
+        # Override via NEXT_PUBLIC_API_URL in .env for remote deployments.
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}
     container_name: garage_radar_frontend
     restart: unless-stopped
     depends_on:
       - api
-    environment:
-      NEXT_PUBLIC_API_URL: http://api:8000
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
 

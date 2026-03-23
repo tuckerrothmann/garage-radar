@@ -65,8 +65,8 @@ def normalize(parsed: ParsedListing) -> dict:
     transmission = normalize_transmission(transmission_raw or combined_text)
 
     # 4. Drivetrain
-    drivetrain_raw = raw.get("drivetrain_raw") or "rwd"
-    drivetrain = "awd" if drivetrain_raw == "awd" else "rwd"
+    drivetrain_raw = raw.get("drivetrain_raw") or ""
+    drivetrain = _detect_drivetrain(drivetrain_raw, combined_text)
 
     # 5. Color
     color_raw = raw.get("exterior_color_raw")
@@ -162,6 +162,45 @@ def _parse_date(value) -> Optional[object]:
             except ValueError:
                 continue
     return None
+
+
+def _detect_drivetrain(drivetrain_raw: str, combined_text: str) -> str:
+    """
+    Determine drivetrain from explicit parser output or text signals.
+
+    Returns "awd" for confirmed all-wheel-drive variants; "rwd" otherwise.
+
+    AWD variants of the air-cooled 911 (1989–1998 only):
+      - 964 Carrera 4 / C4  (G5, 1989–1994)
+      - 993 Carrera 4 / C4 / C4S / Targa 4  (G6, 1994–1998)
+
+    All G1–G4 cars and single-model-year RWD variants (Carrera 2, RS, Speedster,
+    Turbo, America Roadster) are rear-wheel drive.
+    """
+    import re
+
+    # Explicit parser signal takes priority
+    if drivetrain_raw.lower() == "awd":
+        return "awd"
+
+    text = combined_text.lower()
+
+    # Positive AWD patterns — must be Carrera 4 / C4 / C4S / Targa 4
+    _AWD_PATTERNS = [
+        r"\bcarrera\s*4\b",     # "Carrera 4", "Carrera4"
+        r"\bc4s\b",             # "C4S"
+        r"\bc4\b",              # "C4" as a standalone token
+        r"\btarga\s*4\b",       # "Targa 4"
+        r"\ball[\s-]wheel\b",   # "all wheel", "all-wheel"
+        r"\bawd\b",             # spelled out
+    ]
+    for pattern in _AWD_PATTERNS:
+        if re.search(pattern, text):
+            # Guard against false matches: "Carrera 2" or "RS" explicitly mentioned
+            # alongside "C4" text (e.g. "NOT a C4") — keep simple for now.
+            return "awd"
+
+    return "rwd"
 
 
 def _normalize_seller_type(raw: Optional[str]) -> Optional[str]:

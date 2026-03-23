@@ -107,10 +107,11 @@ class TestDetectPriceDrop:
         row = self._row(90_000, [{"price": 100_000, "ts": "2025-01-01T00:00:00"}])
         result = _detect_price_drop(row, self._THRESHOLD)
         assert result is not None
-        drop_pct, old, new = result
+        drop_pct, old, new, is_cumulative = result
         assert drop_pct == pytest.approx(10.0)
         assert old == 100_000
         assert new == 90_000
+        assert is_cumulative is False
 
     def test_small_drop_not_detected(self):
         # $100k → $98k = 2% — below 5% threshold
@@ -138,8 +139,8 @@ class TestDetectPriceDrop:
         row = self._row(90_000, [{"ts": "2025-01-01"}])  # no "price" key
         assert _detect_price_drop(row, self._THRESHOLD) is None
 
-    def test_uses_last_history_entry(self):
-        # Multi-entry history — uses the last one
+    def test_uses_last_history_entry_for_single_period(self):
+        # Multi-entry history — single-period uses the last one
         history = [
             {"price": 120_000, "ts": "2025-01-01"},  # oldest
             {"price": 110_000, "ts": "2025-02-01"},  # most recent
@@ -147,9 +148,35 @@ class TestDetectPriceDrop:
         row = self._row(95_000, history)
         result = _detect_price_drop(row, self._THRESHOLD)
         assert result is not None
-        drop_pct, old, new = result
-        assert old == 110_000  # compared against last entry, not first
-        assert new == 95_000
+        drop_pct, old, new, is_cumulative = result
+        # Cumulative (120k→95k = 20.8%) beats single-period (110k→95k = 13.6%)
+        assert old == 120_000
+        assert is_cumulative is True
+
+    def test_cumulative_drop_detected_when_single_period_misses(self):
+        # Each single step is 3% (below 5%), but cumulative is 9%
+        history = [
+            {"price": 100_000, "ts": "2025-01-01"},
+            {"price": 97_000,  "ts": "2025-02-01"},
+            {"price": 94_000,  "ts": "2025-03-01"},
+        ]
+        row = self._row(91_000, history)
+        result = _detect_price_drop(row, self._THRESHOLD)
+        assert result is not None
+        drop_pct, old, new, is_cumulative = result
+        assert is_cumulative is True
+        assert old == 100_000
+        assert drop_pct == pytest.approx(9.0)
+
+    def test_dollar_floor_filters_small_absolute_drop(self):
+        # 10% drop but only $500 absolute — below $1500 floor
+        row = self._row(4_500, [{"price": 5_000, "ts": "2025-01-01"}])
+        assert _detect_price_drop(row, self._THRESHOLD, min_dollar=1_500) is None
+
+    def test_dollar_floor_passes_large_absolute_drop(self):
+        row = self._row(45_000, [{"price": 50_000, "ts": "2025-01-01"}])
+        result = _detect_price_drop(row, self._THRESHOLD, min_dollar=1_500)
+        assert result is not None
 
     def test_json_string_history_parsed(self):
         history = json.dumps([{"price": 100_000, "ts": "2025-01-01"}])

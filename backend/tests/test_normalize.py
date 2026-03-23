@@ -5,6 +5,7 @@ Run: pytest backend/tests/test_normalize.py -v
 import pytest
 
 from garage_radar.normalize.generation import year_to_generation
+from garage_radar.normalize.pipeline import _detect_drivetrain
 from garage_radar.normalize.nlp_flags import (
     extract_all_flags,
     extract_matching_numbers,
@@ -139,7 +140,7 @@ class TestNlpFlags:
         flags = extract_modification_flags(desc)
         assert flags == []
 
-    def test_extract_all_flags(self):
+    def test_extract_all_flags_combined(self):
         desc = (
             "1991 964 Carrera 2. Numbers matching engine. Original paint confirmed by paint meter. "
             "Full service records available. Sport exhaust installed."
@@ -149,3 +150,51 @@ class TestNlpFlags:
         assert result["original_paint"] is True
         assert result["service_history"] is True
         assert "aftermarket_exhaust" in result["modification_flags"]
+
+
+# ── Drivetrain detection tests ────────────────────────────────────────────────
+
+class TestDetectDrivetrain:
+    def test_explicit_awd_raw(self):
+        assert _detect_drivetrain("awd", "") == "awd"
+
+    def test_explicit_awd_raw_case_insensitive(self):
+        assert _detect_drivetrain("AWD", "") == "awd"
+
+    def test_carrera_4_in_title(self):
+        assert _detect_drivetrain("", "1992 Porsche 964 Carrera 4, blue, 55k miles") == "awd"
+
+    def test_c4s_in_title(self):
+        assert _detect_drivetrain("", "1997 Porsche 993 C4S Coupe") == "awd"
+
+    def test_c4_standalone(self):
+        assert _detect_drivetrain("", "1996 993 C4 Cabriolet") == "awd"
+
+    def test_targa_4(self):
+        assert _detect_drivetrain("", "1992 964 Targa 4") == "awd"
+
+    def test_all_wheel_drive_spelled_out(self):
+        assert _detect_drivetrain("", "all wheel drive, manual, 60k miles") == "awd"
+
+    def test_awd_abbreviation_in_text(self):
+        assert _detect_drivetrain("", "confirmed AWD, well documented") == "awd"
+
+    def test_carrera_2_is_rwd(self):
+        # "Carrera 2" contains no AWD keywords
+        assert _detect_drivetrain("", "1992 964 Carrera 2 Coupe") == "rwd"
+
+    def test_g3_sc_is_rwd(self):
+        assert _detect_drivetrain("", "1981 Porsche 911 SC Targa") == "rwd"
+
+    def test_g4_carrera_32_is_rwd(self):
+        assert _detect_drivetrain("", "1987 Porsche 911 Carrera 3.2 Coupe") == "rwd"
+
+    def test_empty_text_defaults_rwd(self):
+        assert _detect_drivetrain("", "") == "rwd"
+
+    def test_rwd_explicit_raw_is_rwd(self):
+        assert _detect_drivetrain("rwd", "") == "rwd"
+
+    def test_964_turbo_is_rwd(self):
+        # 964 Turbo 3.3/3.6 is rear-wheel drive (unlike 993 Turbo which is AWD)
+        assert _detect_drivetrain("", "1993 Porsche 964 Turbo 3.6") == "rwd"
