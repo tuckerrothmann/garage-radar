@@ -115,7 +115,7 @@ class TestSourceRegistry:
 
     def test_get_parser_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown source"):
-            _get_parser("pcarmarket")
+            _get_parser("autotrader")
 
 
 # ── _fetch_parse_upsert ────────────────────────────────────────────────────────

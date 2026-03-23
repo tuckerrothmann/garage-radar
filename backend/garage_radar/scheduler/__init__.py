@@ -61,6 +61,18 @@ _JOBS = [
         {},
     ),
     (
+        "crawl_ebay",
+        lambda: crawl_job("ebay", max_pages=5, include_sold=True),
+        {"hour": 4, "minute": 0},
+        {},
+    ),
+    (
+        "crawl_pcarmarket",
+        lambda: crawl_job("pcarmarket", max_pages=10, include_sold=True),
+        {"hour": 4, "minute": 45},
+        {},
+    ),
+    (
         "insights",
         lambda: insights_job(),
         {"hour": 6, "minute": 0},
@@ -183,12 +195,14 @@ def main() -> None:
 def _run_now_and_exit(job_name: str) -> None:
     """Run a single job immediately (for manual triggers / debugging)."""
     async def _run():
-        if job_name in ("bat", "carsandbids"):
+        if job_name in ("bat", "carsandbids", "ebay", "pcarmarket"):
             result = await crawl_job(job_name, max_pages=5, include_sold=True)
         elif job_name == "insights":
             result = await insights_job()
         else:
-            raise ValueError(f"Unknown job: {job_name!r}. Valid: bat, carsandbids, insights")
+            raise ValueError(
+                f"Unknown job: {job_name!r}. Valid: bat, carsandbids, ebay, pcarmarket, insights"
+            )
         logger.info("Job %r complete: %s", job_name, result)
 
     asyncio.run(_run())

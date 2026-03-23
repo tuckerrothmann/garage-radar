@@ -50,6 +50,13 @@ def _get_crawler(source_name: str, **kwargs) -> BaseCrawler:
     if source_name == "carsandbids":
         from garage_radar.sources.carsandbids.crawler import CarsAndBidsCrawler
         return CarsAndBidsCrawler(**kwargs)
+    if source_name == "ebay":
+        from garage_radar.sources.ebay.crawler import EbayCrawler
+        # eBay doesn't use max_pages in the same way; pass through if provided
+        return EbayCrawler(max_pages=kwargs.get("max_pages", 5))
+    if source_name == "pcarmarket":
+        from garage_radar.sources.pcarmarket.crawler import PcarmarketCrawler
+        return PcarmarketCrawler(**kwargs)
     raise ValueError(f"Unknown source: {source_name!r}")
 
 
@@ -60,6 +67,12 @@ def _get_parser(source_name: str) -> BaseParser:
     if source_name == "carsandbids":
         from garage_radar.sources.carsandbids.parser import CarsAndBidsParser
         return CarsAndBidsParser()
+    if source_name == "ebay":
+        from garage_radar.sources.ebay.parser import EbayParser
+        return EbayParser()
+    if source_name == "pcarmarket":
+        from garage_radar.sources.pcarmarket.parser import PcarmarketParser
+        return PcarmarketParser()
     raise ValueError(f"Unknown source: {source_name!r}")
 
 
@@ -241,9 +254,10 @@ async def _fetch_parse_upsert(
 
 async def insights_job(window_days: Optional[int] = None) -> dict:
     """
-    Run the insight pipeline (comp cluster rebuild + alert engine).
+    Run the insight pipeline (comp cluster rebuild + alert engine), then
+    notify on any new watch/act alerts that haven't been notified yet.
 
-    Returns the stats dict from run_insight_pipeline().
+    Returns the stats dict from run_insight_pipeline() plus notify stats.
     """
     logger.info("insights_job: starting...")
     try:
@@ -254,7 +268,40 @@ async def insights_job(window_days: Optional[int] = None) -> dict:
             result.get("alerts", {}).get("created", 0),
             result.get("errors", 0),
         )
-        return result
     except Exception:
         logger.exception("insights_job: unhandled exception.")
         return {"errors": 1}
+
+    # ── Notify on new alerts ─────────────────────────────────────────────────
+    notify_stats = {"sent_email": 0, "sent_slack": 0, "skipped": 0, "errors": 0}
+    try:
+        from sqlalchemy import select
+        from garage_radar.db import get_session_factory
+        from garage_radar.db.models import Alert, AlertStatusEnum
+        from garage_radar.notifications.notifier import notify_alerts, stamp_notified
+
+        factory = get_session_factory()
+        async with factory() as session:
+            unnotified = (await session.execute(
+                select(Alert).where(
+                    Alert.notified_at.is_(None),
+                    Alert.status == AlertStatusEnum.open,
+                )
+            )).scalars().all()
+
+            if unnotified:
+                notify_stats = await notify_alerts(unnotified)
+                if notify_stats.get("sent_email") or notify_stats.get("sent_slack"):
+                    await stamp_notified(session, list(unnotified))
+
+        logger.info(
+            "insights_job: notifications — email=%d slack=%d errors=%d",
+            notify_stats.get("sent_email", 0),
+            notify_stats.get("sent_slack", 0),
+            notify_stats.get("errors", 0),
+        )
+    except Exception:
+        logger.exception("insights_job: notification step failed (non-fatal).")
+
+    result["notify"] = notify_stats
+    return result
