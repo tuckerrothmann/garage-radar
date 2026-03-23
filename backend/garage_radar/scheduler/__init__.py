@@ -30,7 +30,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from garage_radar.config import get_settings
-from garage_radar.scheduler.jobs import crawl_job, insights_job
+from garage_radar.scheduler.jobs import crawl_job, dedup_job, insights_job
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,12 @@ _JOBS = [
         "crawl_pcarmarket",
         lambda: crawl_job("pcarmarket", max_pages=10, include_sold=True),
         {"hour": 4, "minute": 45},
+        {},
+    ),
+    (
+        "dedup",
+        lambda: dedup_job(),
+        {"hour": 5, "minute": 30},
         {},
     ),
     (
@@ -169,7 +175,7 @@ def main() -> None:
     )
 
     if args.run_now:
-        _run_now_and_exit(args.run_now)
+        _run_now_and_exit(args.run_now)  # noqa: E501
         return
 
     # Normal mode: start scheduler and block
@@ -197,11 +203,14 @@ def _run_now_and_exit(job_name: str) -> None:
     async def _run():
         if job_name in ("bat", "carsandbids", "ebay", "pcarmarket"):
             result = await crawl_job(job_name, max_pages=5, include_sold=True)
+        elif job_name == "dedup":
+            result = await dedup_job()
         elif job_name == "insights":
             result = await insights_job()
         else:
             raise ValueError(
-                f"Unknown job: {job_name!r}. Valid: bat, carsandbids, ebay, pcarmarket, insights"
+                f"Unknown job: {job_name!r}. "
+                "Valid: bat, carsandbids, ebay, pcarmarket, dedup, insights"
             )
         logger.info("Job %r complete: %s", job_name, result)
 

@@ -158,14 +158,22 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <a
-                        href={listing.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-radar-red hover:underline whitespace-nowrap"
-                      >
-                        View →
-                      </a>
+                      <div className="flex flex-col gap-1">
+                        <a
+                          href={`/listings/${listing.id}`}
+                          className="text-xs text-blue-400 hover:underline whitespace-nowrap"
+                        >
+                          Detail
+                        </a>
+                        <a
+                          href={listing.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-radar-red hover:underline whitespace-nowrap"
+                        >
+                          Source →
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -250,6 +250,30 @@ async def _fetch_parse_upsert(
         stats["records_updated"] += 1
 
 
+# ── Dedup job ─────────────────────────────────────────────────────────────────
+
+async def dedup_job() -> dict:
+    """
+    Run duplicate detection across all active listings.
+
+    Returns the stats dict from run_dedup():
+        {vin_pairs, fuzzy_pairs, marked}
+    """
+    from garage_radar.dedup.engine import run_dedup
+
+    logger.info("dedup_job: starting...")
+    factory = get_session_factory()
+    async with factory() as session:
+        stats = await run_dedup(session)
+    logger.info(
+        "dedup_job: done. vin_pairs=%d fuzzy_pairs=%d marked=%d",
+        stats.get("vin_pairs", 0),
+        stats.get("fuzzy_pairs", 0),
+        stats.get("marked", 0),
+    )
+    return stats
+
+
 # ── Insights job ──────────────────────────────────────────────────────────────
 
 async def insights_job(window_days: Optional[int] = None) -> dict:

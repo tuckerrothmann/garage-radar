@@ -46,6 +46,27 @@ export interface Listing {
   delta_pct: number | null;
 }
 
+export interface PriceHistoryEntry {
+  price: number;
+  ts: string;
+}
+
+export interface ListingDetail extends Listing {
+  drivetrain: string;
+  trim: string | null;
+  engine_variant: string | null;
+  interior_color_raw: string | null;
+  vin: string | null;
+  title_status: string;
+  final_price: number | null;
+  listing_date: string | null;
+  seller_type: string | null;
+  seller_name: string | null;
+  bidder_count: number | null;
+  price_history: PriceHistoryEntry[] | null;
+  alerts: Alert[];
+}
+
 export interface ListingPage {
   total: number;
   limit: number;
@@ -110,6 +131,10 @@ export async function getListings(filters: ListingFilters = {}): Promise<Listing
     if (v !== undefined && v !== "") params.set(k, String(v));
   }
   return apiFetch<ListingPage>(`/listings?${params}`);
+}
+
+export async function getListing(id: string): Promise<ListingDetail> {
+  return apiFetch<ListingDetail>(`/listings/${id}`);
 }
 
 // ── Alerts ───────────────────────────────────────────────────────────────────
