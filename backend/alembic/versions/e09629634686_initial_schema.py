@@ -8,7 +8,7 @@ Create Date: 2026-03-22 22:52:54.324319
 from typing import Sequence, Union
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, ENUM as PG_ENUM, JSONB, UUID
 
 from alembic import op
 
@@ -63,7 +63,7 @@ def upgrade() -> None:
     op.create_table(
         "listings",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, nullable=False),
-        sa.Column("source", sa.Enum(name="source_enum", create_type=False), nullable=False),
+        sa.Column("source", PG_ENUM(name="source_enum", create_type=False), nullable=False),
         sa.Column("source_url", sa.Text, nullable=False),
         sa.Column(
             "scrape_ts",
@@ -73,27 +73,27 @@ def upgrade() -> None:
         ),
         sa.Column(
             "listing_status",
-            sa.Enum(name="listing_status_enum", create_type=False),
+            PG_ENUM(name="listing_status_enum", create_type=False),
             nullable=False,
             server_default="active",
         ),
         # Vehicle
         sa.Column("year", sa.SmallInteger, nullable=False),
-        sa.Column("generation", sa.Enum(name="generation_enum", create_type=False), nullable=True),
-        sa.Column("body_style", sa.Enum(name="body_style_enum", create_type=False), nullable=True),
+        sa.Column("generation", PG_ENUM(name="generation_enum", create_type=False), nullable=True),
+        sa.Column("body_style", PG_ENUM(name="body_style_enum", create_type=False), nullable=True),
         sa.Column("trim", sa.Text, nullable=True),
         sa.Column(
             "drivetrain",
-            sa.Enum(name="drivetrain_enum", create_type=False),
+            PG_ENUM(name="drivetrain_enum", create_type=False),
             nullable=False,
             server_default="rwd",
         ),
         sa.Column("engine_variant", sa.Text, nullable=True),
-        sa.Column("transmission", sa.Enum(name="transmission_enum", create_type=False), nullable=True),
+        sa.Column("transmission", PG_ENUM(name="transmission_enum", create_type=False), nullable=True),
         sa.Column("exterior_color_raw", sa.Text, nullable=True),
         sa.Column(
             "exterior_color_canonical",
-            sa.Enum(name="color_canonical_enum", create_type=False),
+            PG_ENUM(name="color_canonical_enum", create_type=False),
             nullable=True,
         ),
         sa.Column("interior_color_raw", sa.Text, nullable=True),
@@ -101,7 +101,7 @@ def upgrade() -> None:
         sa.Column("vin", sa.String(17), nullable=True),
         sa.Column(
             "title_status",
-            sa.Enum(name="title_status_enum", create_type=False),
+            PG_ENUM(name="title_status_enum", create_type=False),
             nullable=False,
             server_default="unknown",
         ),
@@ -109,7 +109,7 @@ def upgrade() -> None:
         sa.Column("asking_price", sa.Numeric(10, 2), nullable=True),
         sa.Column(
             "currency",
-            sa.Enum(name="currency_enum", create_type=False),
+            PG_ENUM(name="currency_enum", create_type=False),
             nullable=False,
             server_default="USD",
         ),
@@ -124,7 +124,7 @@ def upgrade() -> None:
         # Raw / meta
         sa.Column("description_raw", sa.Text, nullable=True),
         sa.Column("listing_date", sa.Date, nullable=True),
-        sa.Column("seller_type", sa.Enum(name="seller_type_enum", create_type=False), nullable=True),
+        sa.Column("seller_type", PG_ENUM(name="seller_type_enum", create_type=False), nullable=True),
         sa.Column("seller_name", sa.Text, nullable=True),
         sa.Column("location", sa.Text, nullable=True),
         sa.Column("bidder_count", sa.Integer, nullable=True),
@@ -166,17 +166,17 @@ def upgrade() -> None:
     op.create_table(
         "comps",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, nullable=False),
-        sa.Column("source", sa.Enum(name="source_enum", create_type=False), nullable=False),
+        sa.Column("source", PG_ENUM(name="source_enum", create_type=False), nullable=False),
         sa.Column("source_url", sa.Text, nullable=False),
         sa.Column("year", sa.SmallInteger, nullable=False),
-        sa.Column("generation", sa.Enum(name="generation_enum", create_type=False), nullable=True),
-        sa.Column("body_style", sa.Enum(name="body_style_enum", create_type=False), nullable=True),
+        sa.Column("generation", PG_ENUM(name="generation_enum", create_type=False), nullable=True),
+        sa.Column("body_style", PG_ENUM(name="body_style_enum", create_type=False), nullable=True),
         sa.Column("trim", sa.Text, nullable=True),
-        sa.Column("transmission", sa.Enum(name="transmission_enum", create_type=False), nullable=True),
+        sa.Column("transmission", PG_ENUM(name="transmission_enum", create_type=False), nullable=True),
         sa.Column("engine_variant", sa.Text, nullable=True),
         sa.Column(
             "exterior_color_canonical",
-            sa.Enum(name="color_canonical_enum", create_type=False),
+            PG_ENUM(name="color_canonical_enum", create_type=False),
             nullable=True,
         ),
         sa.Column("exterior_color_raw", sa.Text, nullable=True),
@@ -185,13 +185,13 @@ def upgrade() -> None:
         sa.Column("sale_date", sa.Date, nullable=True),
         sa.Column(
             "price_type",
-            sa.Enum(name="price_type_enum", create_type=False),
+            PG_ENUM(name="price_type_enum", create_type=False),
             nullable=False,
             server_default="auction_final",
         ),
         sa.Column(
             "currency",
-            sa.Enum(name="currency_enum", create_type=False),
+            PG_ENUM(name="currency_enum", create_type=False),
             nullable=False,
             server_default="USD",
         ),
@@ -223,9 +223,9 @@ def upgrade() -> None:
         "comp_clusters",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
         sa.Column("cluster_key", sa.Text, nullable=False),
-        sa.Column("generation", sa.Enum(name="generation_enum", create_type=False), nullable=False),
-        sa.Column("body_style", sa.Enum(name="body_style_enum", create_type=False), nullable=False),
-        sa.Column("transmission", sa.Enum(name="transmission_enum", create_type=False), nullable=False),
+        sa.Column("generation", PG_ENUM(name="generation_enum", create_type=False), nullable=False),
+        sa.Column("body_style", PG_ENUM(name="body_style_enum", create_type=False), nullable=False),
+        sa.Column("transmission", PG_ENUM(name="transmission_enum", create_type=False), nullable=False),
         sa.Column("window_days", sa.Integer, nullable=False, server_default="90"),
         sa.Column("comp_count", sa.Integer, nullable=False, server_default="0"),
         sa.Column("median_price", sa.Numeric(10, 2), nullable=True),
@@ -248,7 +248,7 @@ def upgrade() -> None:
     op.create_table(
         "alerts",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, nullable=False),
-        sa.Column("alert_type", sa.Enum(name="alert_type_enum", create_type=False), nullable=False),
+        sa.Column("alert_type", PG_ENUM(name="alert_type_enum", create_type=False), nullable=False),
         sa.Column(
             "triggered_at",
             sa.DateTime(timezone=True),
@@ -265,13 +265,13 @@ def upgrade() -> None:
         sa.Column("delta_pct", sa.Float, nullable=True),
         sa.Column(
             "severity",
-            sa.Enum(name="alert_severity_enum", create_type=False),
+            PG_ENUM(name="alert_severity_enum", create_type=False),
             nullable=False,
             server_default="info",
         ),
         sa.Column(
             "status",
-            sa.Enum(name="alert_status_enum", create_type=False),
+            PG_ENUM(name="alert_status_enum", create_type=False),
             nullable=False,
             server_default="open",
         ),
@@ -285,7 +285,7 @@ def upgrade() -> None:
     op.create_table(
         "canonical_models",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column("generation", sa.Enum(name="generation_enum", create_type=False), nullable=False),
+        sa.Column("generation", PG_ENUM(name="generation_enum", create_type=False), nullable=False),
         sa.Column("years_start", sa.SmallInteger, nullable=False),
         sa.Column("years_end", sa.SmallInteger, nullable=False),
         sa.Column("common_name", sa.Text, nullable=False),
@@ -299,7 +299,7 @@ def upgrade() -> None:
     op.create_table(
         "pipeline_log",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column("source", sa.Enum(name="source_enum", create_type=False), nullable=False),
+        sa.Column("source", PG_ENUM(name="source_enum", create_type=False), nullable=False),
         sa.Column(
             "run_at",
             sa.DateTime(timezone=True),

@@ -33,6 +33,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # ── 0. Drop view that depends on generation/body_style/transmission columns ─
+    op.execute("DROP VIEW IF EXISTS active_listings_with_delta")
+
     # ── 1. Expand body_style_enum ─────────────────────────────────────────────
     # Postgres ALTER TYPE ADD VALUE is non-transactional; must run outside a
     # transaction block.  Alembic's op.execute() runs inside a transaction by
@@ -112,7 +115,6 @@ def upgrade() -> None:
     # ── 13. Recreate active_listings_with_delta view ──────────────────────────
     # Join now uses make+model instead of generation. Also adds price_history
     # and created_at (needed by the alert engine) and make/model for context.
-    op.execute("DROP VIEW IF EXISTS active_listings_with_delta")
     op.execute("""
         CREATE VIEW active_listings_with_delta AS
         SELECT
