@@ -14,7 +14,7 @@ Usage:
 import asyncio
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -107,7 +107,7 @@ class HttpClient:
                 return RawPage(
                     source=self.source_name,
                     url=str(response.url),
-                    fetched_at=datetime.utcnow(),
+                    fetched_at=datetime.now(timezone.utc),
                     content=response.text,
                     content_type=content_type,
                     status_code=response.status_code,
@@ -130,7 +130,7 @@ class HttpClient:
         return RawPage(
             source=self.source_name,
             url=url,
-            fetched_at=datetime.utcnow(),
+            fetched_at=datetime.now(timezone.utc),
             content="",
             content_type="html",
             status_code=0,

@@ -143,7 +143,14 @@ async def crawl_job(
             await _fetch_parse_upsert(url, crawler, parser, factory, stats)
 
     tasks = [asyncio.create_task(_process_url(url)) for url in urls]
-    await asyncio.gather(*tasks, return_exceptions=True)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.error(
+                "crawl_job[%s]: unhandled task exception: %s", source_name, result,
+                exc_info=result,
+            )
+            stats["extraction_errors"] += 1
 
     stats["duration_s"] = round(
         (datetime.now(timezone.utc) - run_at).total_seconds(), 2

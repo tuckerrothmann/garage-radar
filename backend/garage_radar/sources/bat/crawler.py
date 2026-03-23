@@ -15,6 +15,7 @@ from urllib.parse import urljoin, urlencode
 
 from bs4 import BeautifulSoup
 
+from garage_radar.config import get_settings
 from garage_radar.sources.base import BaseCrawler, RawPage
 from garage_radar.sources.shared.http_client import HttpClient
 from garage_radar.sources.shared.snapshot_store import get_snapshot_store
@@ -68,7 +69,7 @@ class BaTCrawler(BaseCrawler):
         async with HttpClient(
             source_name=self.source_name,
             domain="bringatrailer.com",
-            rate=_RATE,
+            rate=get_settings().bat_rate_limit,
         ) as client:
             for vehicle in self.watched_vehicles:
                 query = vehicle.search_query("bat")
@@ -168,7 +169,7 @@ class BaTCrawler(BaseCrawler):
         async with HttpClient(
             source_name=self.source_name,
             domain="bringatrailer.com",
-            rate=_RATE,
+            rate=get_settings().bat_rate_limit,
         ) as client:
             raw = await client.get(url, referer=_BASE_URL)
             store = get_snapshot_store()
