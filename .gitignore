@@ -58,4 +58,8 @@ docker-compose.override.yml
 
 # ── Runtime / logs ─────────────────────────────────────────────
 .tmp/
+.tmp_pytest/
 *.log
+
+# ── Backend data cache (generated locally) ─────────────────────
+backend/data/reference_cache/
