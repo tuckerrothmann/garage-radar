@@ -1,0 +1,115 @@
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+# Local dev (DB only):
+#   docker compose up db
+#
+# Full stack (DB + API + scheduler + frontend):
+#   docker compose up
+#
+# Run a crawl manually:
+#   docker compose run --rm scheduler python -m garage_radar.scheduler --run-now bat
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: garage_radar_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-garage_radar}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-garage_radar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Alembic migrations (run once, then exit) ────────────────────────────────
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: garage_radar_migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-garage_radar}
+    command: alembic upgrade head
+    restart: "no"
+
+  # ── API server ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: garage_radar_api
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-garage_radar}
+      SNAPSHOT_STORE_PATH: /app/data/snapshots
+      REFERENCE_CACHE_PATH: /tmp/garage_radar_reference_cache
+      DISABLE_SCHEDULER: "1"   # Scheduler runs in its own container
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - snapshot_data:/app/data/snapshots
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Scheduler worker ────────────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: garage_radar_scheduler
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-garage_radar}
+      SNAPSHOT_STORE_PATH: /app/data/snapshots
+      REFERENCE_CACHE_PATH: /tmp/garage_radar_reference_cache
+    volumes:
+      - snapshot_data:/app/data/snapshots
+    healthcheck:
+      disable: true
+    command: python -m garage_radar.scheduler
+
+  # ── Next.js frontend ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_INTERNAL_URL: ${FRONTEND_DOCKER_API_URL:-http://api:8000}
+        NEXT_PUBLIC_API_URL: ${FRONTEND_BROWSER_API_URL:-http://localhost:8000}
+    container_name: garage_radar_frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_INTERNAL_URL: ${FRONTEND_DOCKER_API_URL:-http://api:8000}
+      NEXT_PUBLIC_API_URL: ${FRONTEND_BROWSER_API_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  pg_data:
+  snapshot_data:

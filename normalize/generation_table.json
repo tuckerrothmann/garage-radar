@@ -1,0 +1,70 @@
+{
+  "_comment": "Year-to-generation lookup for air-cooled Porsche 911 (1965–1998). Keys are year strings.",
+  "generations": {
+    "G1": {
+      "label": "Classic / Long-hood",
+      "years_start": 1965,
+      "years_end": 1973,
+      "years": [1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973],
+      "notes": "Long-hood; narrow body. 912 (1965–1969) shares body with 4-cyl engine — separate comp cluster. 2.7 RS (1973) is blue-chip."
+    },
+    "G2": {
+      "label": "Impact bumper",
+      "years_start": 1974,
+      "years_end": 1977,
+      "years": [1974, 1975, 1976, 1977],
+      "notes": "US bumper regulations. 930 Turbo introduced 1975."
+    },
+    "G3": {
+      "label": "SC era",
+      "years_start": 1978,
+      "years_end": 1983,
+      "years": [1978, 1979, 1980, 1981, 1982, 1983],
+      "notes": "911 SC. Cabriolet introduced 1983."
+    },
+    "G4": {
+      "label": "Carrera 3.2",
+      "years_start": 1984,
+      "years_end": 1989,
+      "years": [1984, 1985, 1986, 1987, 1988, 1989],
+      "notes": "Note: 1989 is shared with G5 (964 launched mid-year). 1989 Speedster = G4."
+    },
+    "G5": {
+      "label": "964",
+      "years_start": 1989,
+      "years_end": 1994,
+      "years": [1989, 1990, 1991, 1992, 1993, 1994],
+      "notes": "Note: 1989 model year 964 = G5. AWD = Carrera 4."
+    },
+    "G6": {
+      "label": "993 — Last air-cooled",
+      "years_start": 1994,
+      "years_end": 1998,
+      "years": [1994, 1995, 1996, 1997, 1998],
+      "notes": "Note: 1994 MY = both late 964 and early 993. Highest collector demand."
+    }
+  },
+  "year_to_generation": {
+    "1965": "G1", "1966": "G1", "1967": "G1", "1968": "G1", "1969": "G1",
+    "1970": "G1", "1971": "G1", "1972": "G1", "1973": "G1",
+    "1974": "G2", "1975": "G2", "1976": "G2", "1977": "G2",
+    "1978": "G3", "1979": "G3", "1980": "G3", "1981": "G3", "1982": "G3", "1983": "G3",
+    "1984": "G4", "1985": "G4", "1986": "G4", "1987": "G4", "1988": "G4",
+    "1989": "G4_OR_G5",
+    "1990": "G5", "1991": "G5", "1992": "G5", "1993": "G5",
+    "1994": "G5_OR_G6",
+    "1995": "G6", "1996": "G6", "1997": "G6", "1998": "G6"
+  },
+  "ambiguous_years": {
+    "1989": {
+      "note": "1989 Carrera 3.2 = G4; 1989 964 = G5. Resolve from trim/description text.",
+      "keywords_g4": ["carrera 3.2", "speedster", "g50"],
+      "keywords_g5": ["964", "carrera 2", "carrera 4", "c2", "c4", "tiptronic"]
+    },
+    "1994": {
+      "note": "1994 late 964 = G5; 1994 993 = G6. Resolve from description text.",
+      "keywords_g5": ["964"],
+      "keywords_g6": ["993"]
+    }
+  }
+}

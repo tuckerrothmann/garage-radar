@@ -1,0 +1,42 @@
+{
+  "cache_version": 3,
+  "provider": "Wikimedia",
+  "title": "BMW M3",
+  "canonical_url": "https://en.wikipedia.org/wiki/BMW_M3",
+  "image_url": "https://upload.wikimedia.org/example.jpg",
+  "summary": "The BMW M3 is a high-performance version of the BMW 3 Series.",
+  "facts": {
+    "Manufacturer": "BMW M GmbH",
+    "Vehicle class": "Sports car / compact executive car",
+    "Body style": "Coupe, sedan, convertible",
+    "Wikidata description": "car model",
+    "Country of origin": "Germany",
+    "Introduced": "1986-01-01"
+  },
+  "sections": [
+    {
+      "title": "History",
+      "summary": "History paragraph one. History paragraph two.",
+      "source_name": "Wikipedia",
+      "source_url": "https://en.wikipedia.org/wiki/BMW_M3#History"
+    },
+    {
+      "title": "Motorsport",
+      "summary": "Motorsport paragraph one. Motorsport paragraph two.",
+      "source_name": "Wikipedia",
+      "source_url": "https://en.wikipedia.org/wiki/BMW_M3#Motorsport"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/BMW_M3",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "name": "Wikidata",
+      "url": "https://www.wikidata.org/wiki/Q796579",
+      "license": "CC0"
+    }
+  ]
+}

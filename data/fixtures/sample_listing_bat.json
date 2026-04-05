@@ -1,0 +1,48 @@
+{
+  "_comment": "Sample normalized listing fixture — 1995 993 Carrera from Bring a Trailer. Represents a typical high-quality BaT auction.",
+  "source": "bat",
+  "source_url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-EXAMPLE",
+  "scrape_ts": "2025-03-15T14:22:00Z",
+  "listing_status": "active",
+
+  "year": 1995,
+  "generation": "G6",
+  "body_style": "coupe",
+  "trim": "Carrera",
+  "drivetrain": "rwd",
+  "engine_variant": "3.6",
+  "transmission": "manual",
+  "exterior_color_raw": "Riviera Blue Metallic",
+  "exterior_color_canonical": "blue-metallic",
+  "interior_color_raw": "Cashmere/Natural Tan",
+  "mileage": 68200,
+  "vin": "WP0AA2994SS300001",
+  "title_status": "clean",
+
+  "asking_price": 97500,
+  "currency": "USD",
+  "price_history": [
+    {"price": 97500, "ts": "2025-03-15T14:22:00Z"}
+  ],
+  "final_price": null,
+
+  "matching_numbers": true,
+  "original_paint": true,
+  "service_history": true,
+  "modification_flags": [],
+  "normalization_confidence": 0.92,
+
+  "description_raw": "Offered here is a well-documented 1995 Porsche 911 Carrera (993) finished in Riviera Blue Metallic over a Cashmere/Natural Tan interior. The factory 3.6-liter flat-six is reported to be numbers-matching and the car retains its original paint as confirmed by paint meter readings included in the listing photos. Service records spanning from new are present through an independent Porsche specialist. The car shows 68,200 miles.",
+  "listing_date": "2025-03-14",
+  "seller_type": "private",
+  "seller_name": null,
+  "location": "Los Angeles, California",
+  "bidder_count": null,
+  "snapshot_path": "data/snapshots/bat/2025-03-15/1995-porsche-911-carrera-EXAMPLE.html",
+  "possible_duplicate_id": null,
+
+  "_derived": {
+    "cluster_key": "G6:coupe:manual",
+    "ask_vs_median_note": "Computed at query time from comp_clusters. Not stored here."
+  }
+}

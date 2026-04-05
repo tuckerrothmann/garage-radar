@@ -1,0 +1,339 @@
+{
+  "Acura": [
+    "Integra",
+    "Integra LS",
+    "Integra GS-R",
+    "Integra Type R",
+    "MDX",
+    "MDX SH-AWD",
+    "NSX",
+    "NSX-T",
+    "RSX",
+    "RSX Type-S",
+    "TL",
+    "TL Type-S"
+  ],
+  "Alfa Romeo": [
+    "Spider",
+    "Spider Veloce"
+  ],
+  "Aston Martin": [
+    "Rapide",
+    "Rapide S",
+    "V8 Vantage"
+  ],
+  "Audi": [
+    "A6",
+    "A6 Quattro",
+    "A6 Allroad",
+    "A8",
+    "A8L 4.0T",
+    "Q7",
+    "Q7 3.0T",
+    "R8",
+    "R8 V10",
+    "RS6",
+    "RS6 Avant",
+    "S5",
+    "S5 Coupe",
+    "S5 Cabriolet",
+    "S8",
+    "TT 2.0T",
+    "TT 3.2 Quattro",
+    "TT",
+    "TT RS",
+    "S8 Plus"
+  ],
+  "BMW": [
+    "3-Series",
+    "325xi",
+    "325i",
+    "330i",
+    "335i",
+    "4-Series",
+    "5-Series",
+    "530i",
+    "8-Series",
+    "850CSi",
+    "M3",
+    "M4 CS",
+    "M5",
+    "M5 Competition",
+    "M550i xDrive",
+    "X1",
+    "X1 xDrive28i",
+    "X5",
+    "X5 M",
+    "X5 xDrive35d",
+    "X5 xDrive48i",
+    "Z4",
+    "Z3",
+    "Z3 1.9i",
+    "Z3 2.3",
+    "Z3 M",
+    "Z4 M"
+  ],
+  "Bentley": [
+    "Continental",
+    "Continental Flying Spur",
+    "Continental R"
+  ],
+  "Buick": [
+    "Roadmaster"
+  ],
+  "Cadillac": [
+    "CTS",
+    "CTS-V"
+  ],
+  "Chevrolet": [
+    "Camaro",
+    "Camaro 2SS",
+    "Corvair",
+    "Corvair Monza",
+    "Corvette",
+    "Corvette Z06",
+    "Silverado",
+    "Suburban",
+    "Suburban 1500",
+    "Silverado 1500"
+  ],
+  "Chrysler": [
+    "300",
+    "Crossfire",
+    "Imperial",
+    "LeBaron",
+    "New Yorker",
+    "Town & Country"
+  ],
+  "Dodge": [
+    "Model 30",
+    "Ram",
+    "Ram SRT-10",
+    "Viper",
+    "SRT Viper"
+  ],
+  "De Tomaso": [
+    "Pantera"
+  ],
+  "Ferrari": [
+    "360 Modena",
+    "FF",
+    "550 Maranello"
+  ],
+  "Fiat": [
+    "500",
+    "500F"
+  ],
+  "Ford": [
+    "Bronco",
+    "F-150",
+    "F-250",
+    "Fiesta",
+    "Fiesta ST",
+    "Focus",
+    "Focus RS",
+    "GT350SR",
+    "Model T",
+    "Mustang",
+    "Pantera",
+    "Mustang GT",
+    "Mustang GT California Special",
+    "Mustang Shelby GT350",
+    "Mustang Shelby GT500",
+    "Mustang SVT Cobra",
+    "Shelby F-150",
+    "Shelby GT350",
+    "Shelby GT500"
+  ],
+  "GMC": [
+    "Hummer",
+    "Hummer EV"
+  ],
+  "Honda": [
+    "Acty",
+    "Acty SDX",
+    "Acty Street",
+    "Civic",
+    "Civic Si",
+    "Civic Type R",
+    "S2000"
+  ],
+  "Jeep": [
+    "Grand Cherokee",
+    "Grand Wagoneer",
+    "Wrangler",
+    "Wrangler Sport",
+    "Wrangler Unlimited",
+    "Wrangler Unlimited Rubicon"
+  ],
+  "Land Rover": [
+    "Defender",
+    "Defender 90",
+    "Defender 110",
+    "Range Rover",
+    "Range Rover Autobiography",
+    "Range Rover HSE",
+    "Range Rover Supercharged",
+    "Range Rover Sport"
+  ],
+  "Lexus": [
+    "GS",
+    "GS 350",
+    "IS",
+    "IS 350",
+    "IS 300",
+    "IS F",
+    "LC",
+    "LC 500h",
+    "LC 500",
+    "LS",
+    "LS400",
+    "LS 460",
+    "LS430",
+    "LX",
+    "LX 450",
+    "LX 470"
+    ,
+    "LX 570",
+    "SC",
+    "SC300",
+    "SC 430"
+  ],
+  "Maserati": [
+    "GranTurismo"
+  ],
+  "Mazda": [
+    "Mazdaspeed MX-5 Miata",
+    "MX-5 Miata"
+  ],
+  "Mercedes-Benz": [
+    "C-Class",
+    "450 SL",
+    "560 SL",
+    "C200 Kompressor",
+    "CL-Class",
+    "CL55 AMG",
+    "CL65 AMG",
+    "E-Class",
+    "E320 Cabriolet",
+    "E320 CDI",
+    "E320 Wagon",
+    "E55 AMG",
+    "G-Class",
+    "G63 AMG",
+    "SL-Class",
+    "SL55 AMG",
+    "SL63 AMG"
+  ],
+  "MINI": [
+    "Cooper",
+    "Mini Cooper",
+    "Mini Van"
+  ],
+  "Lincoln": [
+    "Continental",
+    "Town Car"
+  ],
+  "Mercury": [
+    "Eight"
+  ],
+  "Oldsmobile": [
+    "Cutlass"
+  ],
+  "Nissan": [
+    "300ZX",
+    "300ZX 2+2",
+    "300ZX Twin Turbo",
+    "300ZX Turbo",
+    "GT-R",
+    "Skyline GT-R"
+  ],
+  "Plymouth": [
+    "Belvedere",
+    "Belvedere I",
+    "Road Runner"
+  ],
+  "Pontiac": [
+    "Firebird",
+    "GTO",
+    "Trans Am"
+  ],
+  "Porsche": [
+    "718",
+    "718 Boxster",
+    "718 Cayman",
+    "911",
+    "911L",
+    "911S",
+    "911SC",
+    "911T",
+    "911 Carrera",
+    "911 Carrera 2",
+    "911 Carrera 4",
+    "911 Carrera RS",
+    "911 Carrera S",
+    "911 Targa 4S",
+    "911 Turbo",
+    "Cayenne",
+    "Cayenne GTS",
+    "Cayenne S",
+    "Cayenne Turbo",
+    "Carrera GT",
+    "Macan",
+    "Macan S",
+    "Macan Turbo"
+  ],
+  "Saab": [
+    "9-3"
+  ],
+  "Subaru": [
+    "BRZ",
+    "Forester",
+    "Forester 2.0XT",
+    "Impreza",
+    "Impreza WRX",
+    "Impreza WRX STI",
+    "Legacy",
+    "Legacy 2.5GT",
+    "Legacy B4",
+    "Legacy GT-B",
+    "Outback",
+    "Outback 2.5i",
+    "WRX",
+    "WRX STI"
+  ],
+  "Tesla": [
+    "Model 3",
+    "Model S 60",
+    "Model S 85",
+    "Model S",
+    "Model X",
+    "Model Y"
+  ],
+  "Toyota": [
+    "4Runner",
+    "FJ Cruiser",
+    "Land Cruiser",
+    "Supra"
+  ],
+  "Mitsubishi": [
+    "Montero",
+    "Montero LS"
+  ],
+  "Volkswagen": [
+    "R32",
+    "Touareg",
+    "Touareg TDI",
+    "Touareg V8",
+    "Westfalia"
+  ],
+  "Volvo": [
+    "S80",
+    "V60",
+    "V60 Recharge T8",
+    "V60 T6",
+    "V70",
+    "V70R",
+    "XC70"
+  ]
+}

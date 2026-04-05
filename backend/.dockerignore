@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+tests/
+data/snapshots/
+playwright_probe.py
+playwright_probe.out.log
+playwright_probe.err.log

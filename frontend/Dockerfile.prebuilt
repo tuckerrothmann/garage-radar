@@ -1,0 +1,22 @@
+ARG RUNTIME_IMAGE=garage-radar-frontend:latest
+FROM ${RUNTIME_IMAGE} AS runner
+
+WORKDIR /app
+USER root
+
+ARG API_INTERNAL_URL=http://api:8000
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV API_INTERNAL_URL=${API_INTERNAL_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+COPY --chown=nextjs:nodejs public ./public
+COPY --chown=nextjs:nodejs .next/standalone ./
+COPY --chown=nextjs:nodejs .next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+ENV PORT 3000
+
+CMD ["node", "server.js"]

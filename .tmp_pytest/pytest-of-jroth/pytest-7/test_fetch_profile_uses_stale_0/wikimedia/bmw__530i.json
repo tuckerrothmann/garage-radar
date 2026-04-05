@@ -1,0 +1,11 @@
+{
+              "cache_version": 3,
+              "provider": "Wikimedia",
+              "title": "BMW 5 Series",
+              "canonical_url": "https://en.wikipedia.org/wiki/BMW_5_Series",
+              "image_url": null,
+              "summary": "Stale cached summary",
+              "facts": {"Manufacturer": "BMW"},
+              "sections": [],
+              "sources": [{"name": "Wikipedia", "url": "https://en.wikipedia.org/wiki/BMW_5_Series", "license": "CC BY-SA 4.0"}]
+            }
